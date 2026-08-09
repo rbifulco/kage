@@ -673,6 +673,14 @@ body[data-layout-footer="b"] .foot-base span:last-child{ text-align:right; }
   position:absolute; inset:0; z-index:3;
   overflow:visible; pointer-events:none;
 }
+/* Nothing inside a section may widen the document. The foreground cut-outs and
+   the cloth canvases are placed to hang past the frame edges on purpose, and as
+   ordinary in-flow descendants they dragged the page box out with them — 194px
+   past a 1440 frame. Clip the horizontal axis at the section, which is exactly
+   viewport-wide, so each overhang is cut precisely where it leaves the screen.
+   `clip` pairs with `visible` without coercing it, so no scroll container is
+   created and every bit of vertical bleed survives. */
+.sec, .foot{ overflow-x:clip; overflow-y:visible; }
 /* the host for whichever chapter currently owns the near plane — no box of
    its own, since every stage it holds is position:fixed to the viewport */
 #fg-sky{
