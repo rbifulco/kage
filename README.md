@@ -2,7 +2,7 @@
 
 An interactive five-chapter night walk through a Kyoto mountain temple, rendered live in Three.js and layered with cinematic generated imagery.
 
-[**View the live project**](https://mengto.github.io/kage/) · [**View the source**](https://github.com/MengTo/kage) · [**Read the build prompt**](PROMPT.md)
+[**View this fork**](https://rbifulco.github.io/kage/) · [**Spatial Review**](https://spatial-review.alterno.dev/review?site=https%3A%2F%2Frbifulco.github.io%2Fkage%2F) · [**Original project**](https://mengto.github.io/kage/) · [**Read the build prompt**](PROMPT.md)
 
 ![Kage preview](assets/kage-preview.webp)
 
@@ -15,7 +15,7 @@ An interactive five-chapter night walk through a Kyoto mountain temple, rendered
 
 ## How it is made
 
-Kage is a deliberately small static site. `index.html` contains the document structure, CSS, procedural scene construction, scroll choreography, and interaction logic. A vendored Three.js r149 build provides WebGL rendering without a package manager or build step.
+Kage is a static site. `index.html` contains the document structure, CSS, procedural scene construction, scroll choreography, and interaction logic. This fork adds Spatial Review 0.4.0 and a shared Three.js r160 runtime, bundled into a checked-in static asset. The original project used Three.js r149.
 
 The temple, torii, lanterns, moon, terrain, rain, leaves, fog, and post-processing are constructed at runtime. Optimized WebP scene plates and foreground cutouts sit in normal HTML layers, giving the page its collage-like depth while keeping the camera path and lighting live.
 
@@ -33,7 +33,19 @@ python3 -m http.server 4173 --bind 127.0.0.1
 
 Then visit [http://127.0.0.1:4173/](http://127.0.0.1:4173/).
 
-There is no build step, environment variable, analytics script, or runtime network dependency. Python is used only to serve the static files locally; any equivalent static server will work.
+The committed bundle runs without a build or runtime network dependency. After editing the integration or scene, use `npm ci`, `npm test`, and `npm run build`, and commit the regenerated `assets/kage-runtime.js`. Python is used only to serve static files locally; any equivalent static server will work. No analytics is added.
+
+## Spatial Review
+
+GitHub Pages publishes the repository root of branch `spatial-review-pages`.
+See [integration details, access approval, source mappings, and limitations](SPATIAL_REVIEW.md).
+The browser integration exports 37 placements, 32 canonical assets, the six-stop
+night walk, the opening dolly, and four card hover journeys. The approved editor
+is `https://spatial-review.alterno.dev`; no other production editor is enabled.
+
+For a live bridge test, serve this repository on two localhost ports and open
+`/tests/review-harness.html?site=http%3A%2F%2F127.0.0.1%3A4183%2F`
+from the second port, then click **Run checks**.
 
 ## Project structure
 

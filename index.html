@@ -1202,7 +1202,7 @@ body[data-layout-footer="b"] .foot-base span:last-child{ text-align:right; }
 
 <div class="rail" id="rail"></div>
 
-<script src="secret-pathways-assets/three.min.js"></script>
+<script src="assets/kage-runtime.js"></script>
 <script>
 /* =====================================================================
    KAGE — a live Kyoto mountain temple, after dark.
@@ -1214,6 +1214,8 @@ body[data-layout-footer="b"] .foot-base span:last-child{ text-align:right; }
 
 /* ------------------------------------------------------------ 0 · basics */
 const Q      = new URLSearchParams(location.search);
+const REVIEW_CAPTURE = window.KageReview.capture;
+if (REVIEW_CAPTURE) { Q.set('shot', '0'); Q.set('q', 'high'); Q.set('adapt', '0'); }
 const qs     = (k, d) => { const v = Q.get(k); return v === null ? d : v; };
 const qn     = (k, d) => { const v = Q.get(k); return v === null ? d : parseFloat(v); };
 const REDUCE = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -2261,8 +2263,8 @@ const canvas = document.getElementById('gl');
    renders a frame wider than the phone shows and drops the right edge of the
    scene off-screen, which is how the wordmark lost its last letter. Every
    size, aspect and pointer mapping below goes through these. */
-const vpW = () => document.documentElement.clientWidth  || innerWidth;
-const vpH = () => document.documentElement.clientHeight || innerHeight;
+const vpW = () => REVIEW_CAPTURE ? 1440 : (document.documentElement.clientWidth || innerWidth);
+const vpH = () => REVIEW_CAPTURE ? 900 : (document.documentElement.clientHeight || innerHeight);
 let renderer, scene, camera, maxAniso = 1;
 const HI = qs('q', COARSE ? 'low' : 'high');
 const LOW = HI === 'low';
@@ -2277,13 +2279,14 @@ const PERF = { scale: 1, acc: 0, n: 0, locked: qs('adapt', '1') === '0' };
 function initGL() {
   if (qs('nogl', '0') !== '0' || !window.THREE) throw new Error('webgl disabled');
   renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: !WANT_POST, alpha: false, powerPreference: 'high-performance' });
+  renderer.useLegacyLights = true; // Preserve r149 light intensities after the r160 upgrade.
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, DPR_CAP));
   /* updateStyle stays on: the stylesheet sizes the canvas at 100% of the
      initial containing block, which is the very box that runs wide on a
      phone. Writing the CSS size in pixels pins the element to the layout
      viewport the buffer was built for. */
   renderer.setSize(vpW(), vpH(), true);
-  renderer.outputEncoding = WANT_POST ? THREE.LinearEncoding : THREE.sRGBEncoding;
+  renderer.outputColorSpace = WANT_POST ? THREE.LinearSRGBColorSpace : THREE.SRGBColorSpace;
   renderer.toneMapping = WANT_POST ? THREE.NoToneMapping : THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.0;
   renderer.setClearColor(0x05070a, 1);
@@ -2308,7 +2311,7 @@ function tx(canvasEl, o) {
   t.wrapS = t.wrapT = o.wrap || THREE.ClampToEdgeWrapping;
   if (o.repeat) t.repeat.set(o.repeat[0], o.repeat[1]);
   t.anisotropy = Math.min(o.aniso || 8, maxAniso);
-  if (o.srgb !== false) t.encoding = THREE.sRGBEncoding;
+  if (o.srgb !== false) t.colorSpace = THREE.SRGBColorSpace;
   t.needsUpdate = true;
   return t;
 }
@@ -2503,6 +2506,7 @@ function buildShell() {
       depthWrite: false, fog: false, toneMapped: false }));
   sky.position.set(0, 62, -108); sky.renderOrder = 0; scene.add(sky);
   WORLD.sky = sky;
+  KageReview.register(sky, 'mountain-sky', 'Night sky', 'buildShell:sky', 'Context');
 
   /* the wooded ridge that closes the valley — three-quarters eaten by fog,
      which is the only reason the ground plane can just stop out there */
@@ -2516,6 +2520,7 @@ function buildShell() {
       new THREE.MeshBasicMaterial({ map: i ? tx(texRidge()) : ridgeMap, transparent: true,
         color: i ? 0x0a1015 : 0x06090d, depthWrite: false, fog: false }));
     m.position.set(r[4], r[1], r[0]); m.renderOrder = 1; scene.add(m);
+    KageReview.register(m, 'ridge-' + i, 'Mountain ridge ' + (i + 1), 'buildShell:ridge[' + i + ']', 'Context');
   });
 
   /* floor + podium */
@@ -2535,6 +2540,7 @@ function buildShell() {
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(150, 150), floorMat);
   floor.rotation.x = -Math.PI / 2; floor.position.set(0, 0, -18); floor.receiveShadow = true;
   scene.add(floor);
+  KageReview.register(floor, 'courtyard-ground', 'Wet courtyard', 'buildShell:floor', 'Ground');
   WORLD.floor = floor; WORLD.floorMat = floorMat;
 
   /* The podium and the flight use their own material: the mirror shader below
@@ -2550,8 +2556,10 @@ function buildShell() {
   const plat = new THREE.Mesh(new THREE.BoxGeometry(42, PODIUM, 24), platMat);
   plat.position.set(0, PODIUM / 2, -45); plat.receiveShadow = true; plat.castShadow = true;
   scene.add(plat);
+  KageReview.register(plat, 'temple-podium', 'Temple podium', 'buildShell:plat', 'Ground');
   const cope = new THREE.Mesh(new THREE.BoxGeometry(43, .34, 25), wallMat);
   cope.position.set(0, PODIUM - .17, -45); cope.receiveShadow = true; scene.add(cope);
+  KageReview.register(cope, 'podium-coping', 'Podium coping', 'buildShell:cope', 'Ground');
 
   /* The flight. Twenty-six risers merged into one buffer — as separate meshes
      it is twenty-six draw calls for a shape nobody ever gets close to. */
@@ -2566,8 +2574,10 @@ function buildShell() {
   }
   const stair = new THREE.Mesh(mergeGeos(treads), platMat);
   stair.receiveShadow = true; stair.castShadow = true; scene.add(stair);
+  KageReview.register(stair, 'approach-stairs', 'Approach stairs', 'buildShell:stair', 'Ground');
   const rail = new THREE.Mesh(mergeGeos(cheeks), wallMat);
   rail.receiveShadow = true; rail.castShadow = true; scene.add(rail);
+  KageReview.register(rail, 'stair-cheeks', 'Stair cheeks', 'buildShell:rail', 'Ground');
 }
 
 /* ------------------------------------------------------- the worship hall
@@ -2597,9 +2607,9 @@ function buildTemple() {
   /* one lit bay: a glowing sheet with a lattice hung just in front of it */
   function bay(w, h, x, y, z) {
     const p = new THREE.Mesh(new THREE.PlaneGeometry(w, h), paper);
-    p.position.set(x, y, z); g.add(p);
+    p.position.set(x, y, z); p.name = 'Illuminated paper'; g.add(p);
     const s = new THREE.Mesh(new THREE.PlaneGeometry(w, h), grid);
-    s.position.set(x, y, z + .06); s.renderOrder = 3; g.add(s);
+    s.position.set(x, y, z + .06); s.renderOrder = 3; s.name = 'Shoji lattice'; g.add(s);
   }
   /* The block-and-arm band that carries every eave. The pieces are merged, so
      they carry absolute coordinates — TEMPLE_Z has to go in here, not on the
@@ -2619,74 +2629,75 @@ function buildTemple() {
       });
     }
     const m = new THREE.Mesh(mergeGeos(parts), post);
-    m.castShadow = false; g.add(m);
+    m.castShadow = false; m.name = 'Eave brackets'; g.add(m);
   }
 
   const F = PODIUM;                                   /* the hall's floor level */
 
   /* ---- ground storey: six bays of lit lattice between charred columns --- */
   const core = new THREE.Mesh(new THREE.BoxGeometry(13.6, 5.0, 8.2), timber);
-  core.position.set(0, F + 2.5, TEMPLE_Z); core.castShadow = true; g.add(core);
+  core.position.set(0, F + 2.5, TEMPLE_Z); core.castShadow = true; core.name = 'Ground storey'; g.add(core);
   for (let i = 0; i < 5; i++) {
     const x = -5.6 + i * 2.8;
     bay(1.55, 2.5, x, F + 2.6, TEMPLE_Z + 4.16);
   }
   for (let i = 0; i < 6; i++) {
     const c = new THREE.Mesh(new THREE.CylinderGeometry(.30, .34, 5.0, 14), post);
-    c.position.set(-7.0 + i * 2.8, F + 2.5, TEMPLE_Z + 4.24); c.castShadow = true; g.add(c);
+    c.position.set(-7.0 + i * 2.8, F + 2.5, TEMPLE_Z + 4.24); c.castShadow = true; c.name = 'Front column'; g.add(c);
   }
   const sill = new THREE.Mesh(new THREE.BoxGeometry(14.6, .40, 8.9), post);
-  sill.position.set(0, F + .20, TEMPLE_Z); g.add(sill);
+  sill.position.set(0, F + .20, TEMPLE_Z); sill.name = 'Ground sill'; g.add(sill);
   brackets(7.0, 4.4, F + 5.15, 1.40);
 
   /* ---- the pent roof over the ground storey ---------------------------- */
   const lower = new THREE.Mesh(roofGeo(9.6, 6.4, 3.2, 2.9, .40, .26), tileMat);
-  lower.position.set(0, F + 5.6, TEMPLE_Z); lower.castShadow = true; g.add(lower);
+  lower.position.set(0, F + 5.6, TEMPLE_Z); lower.castShadow = true; lower.name = 'Lower roof'; g.add(lower);
 
   /* ---- upper storey: railed gallery, dark boards, the temple's name ----- */
   const up = new THREE.Mesh(new THREE.BoxGeometry(10.0, 3.4, 6.0), timber);
-  up.position.set(0, F + 9.4, TEMPLE_Z); up.castShadow = true; g.add(up);
+  up.position.set(0, F + 9.4, TEMPLE_Z); up.castShadow = true; up.name = 'Upper storey'; g.add(up);
   const deck = new THREE.Mesh(new THREE.BoxGeometry(12.4, .26, 8.4), post);
-  deck.position.set(0, F + 7.72, TEMPLE_Z); g.add(deck);
+  deck.position.set(0, F + 7.72, TEMPLE_Z); deck.name = 'Gallery deck'; g.add(deck);
   [.10, .94].forEach(dy => [4.2, -4.2].forEach(dz => {
     const r = new THREE.Mesh(new THREE.BoxGeometry(12.4, .17, .17), post);
-    r.position.set(0, F + 7.85 + dy, TEMPLE_Z + dz); g.add(r);
+    r.position.set(0, F + 7.85 + dy, TEMPLE_Z + dz); r.name = 'Gallery rail'; g.add(r);
   }));
   for (let i = 0; i <= 16; i++) {
     const b = new THREE.Mesh(new THREE.BoxGeometry(.10, 1.05, .10), post);
-    b.position.set(-6.2 + i * .775, F + 8.42, TEMPLE_Z + 4.2); g.add(b);
+    b.position.set(-6.2 + i * .775, F + 8.42, TEMPLE_Z + 4.2); b.name = 'Gallery baluster'; g.add(b);
   }
   for (let i = 0; i < 4; i++)
     bay(1.0, 1.35, -4.5 + i * 3.0, F + 9.5, TEMPLE_Z + 3.06);
   /* the plaque */
   const plq = new THREE.Mesh(new THREE.BoxGeometry(1.9, 1.30, .16), gold);
-  plq.position.set(0, F + 9.7, TEMPLE_Z + 3.12); g.add(plq);
+  plq.position.set(0, F + 9.7, TEMPLE_Z + 3.12); plq.name = 'Gold plaque'; g.add(plq);
   const plqIn = new THREE.Mesh(new THREE.BoxGeometry(1.52, .98, .18), timber);
-  plqIn.position.set(0, F + 9.7, TEMPLE_Z + 3.16); g.add(plqIn);
+  plqIn.position.set(0, F + 9.7, TEMPLE_Z + 3.16); plqIn.name = 'Plaque inset'; g.add(plqIn);
   brackets(5.2, 3.3, F + 11.2, 1.30);
 
   /* ---- the main roof: the silhouette the whole page hangs on ----------- */
   const upper = new THREE.Mesh(roofGeo(10.8, 7.2, 3.6, 5.2, .48, .26), tileMat);
-  upper.position.set(0, F + 11.7, TEMPLE_Z); upper.castShadow = true; g.add(upper);
+  upper.position.set(0, F + 11.7, TEMPLE_Z); upper.castShadow = true; upper.name = 'Main roof'; g.add(upper);
   const ridge = new THREE.Mesh(new THREE.BoxGeometry(7.6, .60, 1.05), tileMat);
-  ridge.position.set(0, F + 17.10, TEMPLE_Z); g.add(ridge);
+  ridge.position.set(0, F + 17.10, TEMPLE_Z); ridge.name = 'Roof ridge'; g.add(ridge);
   [-1, 1].forEach(s => {
     const oni = new THREE.Mesh(new THREE.ConeGeometry(.46, 1.15, 4), tileMat);
-    oni.position.set(s * 3.9, F + 17.6, TEMPLE_Z); oni.rotation.y = Math.PI / 4; g.add(oni);
+    oni.position.set(s * 3.9, F + 17.6, TEMPLE_Z); oni.rotation.y = Math.PI / 4; oni.name = 'Ridge ornament'; g.add(oni);
   });
   WORLD.templeTop = F + 18.2;
 
   /* ---- the two flanking wings, lit the same way ------------------------ */
   [-1, 1].forEach(s => {
     const w = new THREE.Mesh(new THREE.BoxGeometry(7.6, 3.4, 5.2), timber);
-    w.position.set(s * 10.6, F + 1.7, TEMPLE_Z + 1.4); w.castShadow = true; g.add(w);
+    w.position.set(s * 10.6, F + 1.7, TEMPLE_Z + 1.4); w.castShadow = true; w.name = 'Side wing'; g.add(w);
     for (let i = 0; i < 3; i++)
       bay(1.3, 1.6, s * 10.6 + (i - 1) * 2.4, F + 1.8, TEMPLE_Z + 4.06);
     const r = new THREE.Mesh(roofGeo(5.0, 4.0, 1.4, 1.9, .32, .26), tileMat);
-    r.position.set(s * 10.6, F + 3.4, TEMPLE_Z + 1.4); r.castShadow = true; g.add(r);
+    r.position.set(s * 10.6, F + 3.4, TEMPLE_Z + 1.4); r.castShadow = true; r.name = 'Wing roof'; g.add(r);
   });
 
   scene.add(g); WORLD.temple = g;
+  KageReview.register(g, 'worship-hall', 'Worship hall', 'buildTemple');
 
   /* the glow the hall pushes out over its own steps */
   const spill = new THREE.Mesh(new THREE.PlaneGeometry(30, 16),
@@ -2719,6 +2730,7 @@ function buildMoon() {
       transparent: true, depthWrite: false, fog: false, toneMapped: false }));
   disc.position.set(MOON.x, MOON.y, MOON.z); disc.renderOrder = 1;
   scene.add(disc); WORLD.moon = disc;
+  KageReview.register(disc, 'vermilion-moon', 'Vermilion moon', 'buildMoon:MOON', 'Context');
 
   /* the air around it — a wide, weak corona that the bloom picks up */
   const halo = new THREE.Mesh(new THREE.PlaneGeometry(MOON.r * 6.4, MOON.r * 6.4),
@@ -2748,32 +2760,32 @@ function buildTorii() {
 
   [-1, 1].forEach(s => {
     const col = new THREE.Mesh(new THREE.CylinderGeometry(.30, .38, H, 26), lac);
-    col.position.set(s * SPAN, BASE + H / 2, 0); col.castShadow = true; g.add(col);
+    col.position.set(s * SPAN, BASE + H / 2, 0); col.castShadow = true; col.name = 'Lacquer column'; g.add(col);
     const foot = new THREE.Mesh(new THREE.CylinderGeometry(.46, .50, .52, 26), gold);
-    foot.position.set(s * SPAN, BASE + .26, 0); foot.castShadow = true; g.add(foot);
+    foot.position.set(s * SPAN, BASE + .26, 0); foot.castShadow = true; foot.name = 'Stone foot'; g.add(foot);
     const collar = new THREE.Mesh(new THREE.CylinderGeometry(.345, .345, .26, 26), gold);
-    collar.position.set(s * SPAN, BASE + H - 1.42, 0); g.add(collar);
+    collar.position.set(s * SPAN, BASE + H - 1.42, 0); collar.name = 'Column collar'; g.add(collar);
     /* the ornate bracket where the beams cross the column */
     const br = new THREE.Mesh(new THREE.BoxGeometry(.86, .30, .86), gold);
-    br.position.set(s * SPAN, BASE + H - .72, 0); g.add(br);
+    br.position.set(s * SPAN, BASE + H - .72, 0); br.name = 'Lower bracket'; g.add(br);
     const br2 = new THREE.Mesh(new THREE.BoxGeometry(.60, .52, .60), gold);
-    br2.position.set(s * SPAN, BASE + H - .34, 0); g.add(br2);
+    br2.position.set(s * SPAN, BASE + H - .34, 0); br2.name = 'Upper bracket'; g.add(br2);
     [-1, 1].forEach(d => {
       const wing = new THREE.Mesh(new THREE.BoxGeometry(.24, .70, .18), gold);
-      wing.position.set(s * SPAN + d * .40, BASE + H - .62, .30); g.add(wing);
-      const wing2 = wing.clone(); wing2.position.z = -.30; g.add(wing2);
+      wing.position.set(s * SPAN + d * .40, BASE + H - .62, .30); wing.name = 'Column tie'; g.add(wing);
+      const wing2 = wing.clone(); wing2.position.z = -.30; wing2.name = 'Rear column tie'; g.add(wing2);
     });
   });
 
   /* nuki — the straight beam that pierces the columns */
   const nuki = new THREE.Mesh(new THREE.BoxGeometry(9.4, .52, .46), lac);
-  nuki.position.set(0, BASE + H - 2.15, 0); nuki.castShadow = true; g.add(nuki);
+  nuki.position.set(0, BASE + H - 2.15, 0); nuki.castShadow = true; nuki.name = 'Nuki crossbeam'; g.add(nuki);
 
   /* gakuzuka — the little strut at the centre */
   const gak = new THREE.Mesh(new THREE.BoxGeometry(.46, 1.22, .40), lac);
-  gak.position.set(0, BASE + H + .10, 0); g.add(gak);
+  gak.position.set(0, BASE + H + .10, 0); gak.name = 'Gakuzuka strut'; g.add(gak);
   const gakG = new THREE.Mesh(new THREE.BoxGeometry(.60, .18, .50), gold);
-  gakG.position.set(0, BASE + H + .68, 0); g.add(gakG);
+  gakG.position.set(0, BASE + H + .68, 0); gakG.name = 'Strut cap'; g.add(gakG);
 
   /* shimaki + kasagi — the two crowning beams, swept upward at the ends */
   function beamPath(half, rise, power) {
@@ -2786,16 +2798,16 @@ function buildTorii() {
   }
   const shimaki = new THREE.Mesh(sweepPoly(beamPath(5.05, .40, 2.6),
     [[-.30, -.19], [.30, -.19], [.32, .06], [.28, .21], [-.28, .21], [-.32, .06]]), lac);
-  shimaki.position.set(0, BASE + H - .52, 0); shimaki.castShadow = true; g.add(shimaki);
+  shimaki.position.set(0, BASE + H - .52, 0); shimaki.castShadow = true; shimaki.name = 'Shimaki beam'; g.add(shimaki);
 
   const kasagi = new THREE.Mesh(sweepPoly(beamPath(5.85, .62, 2.4),
     [[-.42, -.24], [.42, -.24], [.46, .04], [.30, .28], [-.30, .28], [-.46, .04]]), lac);
-  kasagi.position.set(0, BASE + H + .96, 0); kasagi.castShadow = true; g.add(kasagi);
+  kasagi.position.set(0, BASE + H + .96, 0); kasagi.castShadow = true; kasagi.name = 'Kasagi crown'; g.add(kasagi);
   /* a black lacquer cap along the top of the kasagi */
   const cap = new THREE.Mesh(sweepPoly(beamPath(5.95, .62, 2.4),
     [[-.48, .22], [.48, .22], [.48, .34], [-.48, .34]]),
     new THREE.MeshStandardMaterial({ color: 0x120c0c, roughness: .42, metalness: .14 }));
-  cap.position.set(0, BASE + H + .96, 0); g.add(cap);
+  cap.position.set(0, BASE + H + .96, 0); cap.name = 'Black lacquer cap'; g.add(cap);
 
   /* the gate stands at the foot of the flight, not over the court — small
      enough that the hall keeps the top of the frame to itself */
@@ -2805,52 +2817,54 @@ function buildTorii() {
   const GS = .72;
   g.position.set(0, -BASE * GS, -8.6); g.scale.setScalar(GS);
   scene.add(g); WORLD.torii = g;
+  KageReview.register(g, 'approach-torii', 'Approach torii', 'buildTorii');
 }
 
-function buildLantern(x, z, s, y) {
+function buildLantern(id, x, z, s, y) {
   const stone = lib('lanternStone', () => surface(lib('granite', () => texStone(17)), [1.5, 1.5],
     { color: 0x9aa5a5, metalness: 0, normal: 1.45 }));
   const dark  = lib('lanternDark', () => surface(postWood(), [.9, .9],
     { color: 0xd8c2b6, metalness: .1, normal: .7 }));
-  const g = new THREE.Group();
+  const g = new THREE.Group(); g.name = 'Stone lantern';
   const base = new THREE.Mesh(new THREE.CylinderGeometry(.44, .52, .26, 20), stone);
-  base.position.y = .13; base.castShadow = true; g.add(base);
+  base.position.y = .13; base.castShadow = true; base.name = 'Stone base'; g.add(base);
   const post = new THREE.Mesh(new THREE.CylinderGeometry(.15, .18, 1.02, 16), stone);
-  post.position.y = .77; post.castShadow = true; g.add(post);
+  post.position.y = .77; post.castShadow = true; post.name = 'Stone post'; g.add(post);
   const shelf = new THREE.Mesh(new THREE.CylinderGeometry(.42, .34, .13, 20), stone);
-  shelf.position.y = 1.34; shelf.castShadow = true; g.add(shelf);
+  shelf.position.y = 1.34; shelf.castShadow = true; shelf.name = 'Stone shelf'; g.add(shelf);
 
   const box = new THREE.Mesh(new THREE.BoxGeometry(.50, .50, .50), dark);
-  box.position.y = 1.66; box.castShadow = true; g.add(box);
+  box.position.y = 1.66; box.castShadow = true; box.name = 'Timber chamber'; g.add(box);
   const paneMat = new THREE.MeshBasicMaterial({ color: hdr(2.3, .30, .085), fog: false, toneMapped: false });
   [[0, 0, .256, 0], [0, 0, -.256, Math.PI], [.256, 0, 0, Math.PI / 2], [-.256, 0, 0, -Math.PI / 2]].forEach(p => {
     const pane = new THREE.Mesh(new THREE.PlaneGeometry(.34, .34), paneMat);
-    pane.position.set(p[0], 1.66, p[2]); pane.rotation.y = p[3]; g.add(pane);
+    pane.position.set(p[0], 1.66, p[2]); pane.rotation.y = p[3]; pane.name = 'Luminous pane'; g.add(pane);
   });
   WORLD.lanternPane = WORLD.lanternPane || paneMat;
 
   const roof = new THREE.Mesh(new THREE.CylinderGeometry(.10, .62, .34, 4, 1), stone);
-  roof.position.y = 2.06; roof.rotation.y = Math.PI / 4; roof.castShadow = true; g.add(roof);
+  roof.position.y = 2.06; roof.rotation.y = Math.PI / 4; roof.castShadow = true; roof.name = 'Pyramidal roof'; g.add(roof);
   const brim = new THREE.Mesh(new THREE.CylinderGeometry(.66, .70, .07, 4, 1), stone);
-  brim.position.y = 1.93; brim.rotation.y = Math.PI / 4; g.add(brim);
+  brim.position.y = 1.93; brim.rotation.y = Math.PI / 4; brim.name = 'Roof brim'; g.add(brim);
   const knob = new THREE.Mesh(new THREE.SphereGeometry(.09, 12, 10), stone);
-  knob.position.y = 2.28; g.add(knob);
+  knob.position.y = 2.28; knob.name = 'Roof finial'; g.add(knob);
   const tip = new THREE.Mesh(new THREE.ConeGeometry(.055, .16, 10), stone);
-  tip.position.y = 2.4; g.add(tip);
+  tip.position.y = 2.4; tip.name = 'Finial tip'; g.add(tip);
 
   const glow = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 3.4),
     new THREE.MeshBasicMaterial({ map: tx(texGlow('rgba(255,120,60,.9)', 'rgba(255,60,24,.28)')),
       transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, opacity: .5 }));
-  glow.position.y = 1.66; glow.renderOrder = 2; g.add(glow);
+  glow.position.y = 1.66; glow.renderOrder = 2; glow.name = 'Light glow'; g.add(glow);
   glow.userData.billboard = true;
 
   const lt = new THREE.PointLight(0xff5a24, 2.6, 9, 2);
-  lt.position.set(0, 1.66, 0); g.add(lt);
+  lt.position.set(0, 1.66, 0); lt.name = 'Lantern light'; g.add(lt);
   WORLD.lanternLights = WORLD.lanternLights || [];
   WORLD.lanternLights.push(lt); WORLD.lanternGlows = WORLD.lanternGlows || []; WORLD.lanternGlows.push(glow);
 
   g.position.set(x, y || 0, z); g.scale.setScalar(s || 1);
   scene.add(g);
+  KageReview.register(g, id, 'Stone lantern — ' + id.replace('lantern-', ''), 'JOBS:' + id + ':buildLantern', 'Lanterns', 'stone-lantern');
   return g;
 }
 
@@ -2916,10 +2930,12 @@ function buildMaple(seed, x, z, scale) {
   inst.castShadow = false; inst.frustumCulled = false;
 
   const g = new THREE.Group();
+  trunk.name = 'Branching trunk'; inst.name = 'Maple foliage';
   g.add(trunk); g.add(inst);
   g.position.set(x, 0, z); g.scale.setScalar(scale || 1);
   g.rotation.y = rnd() * TAU;
   scene.add(g);
+  KageReview.register(g, 'maple-' + seed, 'Maple ' + seed, 'JOBS:buildMaple(' + seed + ')', 'Trees');
   /* leaves breathe in the wind */
   leafMat.onBeforeCompile = sh => {
     sh.uniforms.uT = WORLD.uT;
@@ -2952,6 +2968,7 @@ function buildRocks() {
     m.rotation.set(rnd(), rnd() * TAU, rnd() * .4);
     m.castShadow = true; m.receiveShadow = true;
     scene.add(m);
+    KageReview.register(m, 'court-rock-' + i, 'Court rock ' + (i + 1), 'buildRocks:spots[' + i + ']', 'Rocks');
   });
 }
 
@@ -2961,6 +2978,7 @@ function cutoutMaterial(canvasEl, sway) {
     map: tx(canvasEl, { aniso: 16 }), transparent: true, depthWrite: true,
     alphaTest: .012, side: THREE.DoubleSide, fog: true, color: 0xffffff
   });
+  mat.defines = { USE_UV: '' }; // r160 no longer enables raw vUv for mapped materials.
   mat.onBeforeCompile = sh => {
     sh.uniforms.uT = WORLD.uT;
     sh.uniforms.uSway = { value: sway || .07 };
@@ -3012,6 +3030,7 @@ function buildForeground() {
     m.frustumCulled = false;
     scene.add(m);
     WORLD.fg.push(m);
+    KageReview.register(m, 'foreground-' + L[0], L[0], 'buildForeground:layers:' + L[0], 'Foreground');
   });
 }
 
@@ -4039,12 +4058,14 @@ const CAM = [
   { p: [  0.0, 7.60, -16.0 ], t: [  0.0, 13.0, -40.0 ], fov: 42 }, /* 4 afterlight  */
   { p: [  0.0, 10.5, -20.0 ], t: [  0.0, 3.00, -34.0 ], fov: 46 }  /* 5 footer      */
 ];
+const CAM_TENSION = .42;
+const INTRO_VIEW = { offset: [0, .65, 5.6], fov: 8, duration: 2.4 };
 const RIG = { prog: 0, smooth: 0, mx: 0, my: 0, tmx: 0, tmy: 0, intro: 0, focus: -1, focusAmt: 0 };
 let curveP, curveT, tmpCam;
 
 function buildRig() {
-  curveP = new THREE.CatmullRomCurve3(CAM.map(c => new THREE.Vector3(c.p[0], c.p[1], c.p[2])), false, 'catmullrom', .42);
-  curveT = new THREE.CatmullRomCurve3(CAM.map(c => new THREE.Vector3(c.t[0], c.t[1], c.t[2])), false, 'catmullrom', .42);
+  curveP = new THREE.CatmullRomCurve3(CAM.map(c => new THREE.Vector3(c.p[0], c.p[1], c.p[2])), false, 'catmullrom', CAM_TENSION);
+  curveT = new THREE.CatmullRomCurve3(CAM.map(c => new THREE.Vector3(c.t[0], c.t[1], c.t[2])), false, 'catmullrom', CAM_TENSION);
   tmpCam = new THREE.PerspectiveCamera(CAM[0].fov, vpW() / vpH(), .35, 220);
   camera.layers.enable(1); camera.layers.enable(2);
 }
@@ -4072,7 +4093,7 @@ function applyCamera() {
 
   /* the opening dolly: a long lens easing in from further back */
   const io = 1 - RIG.intro;
-  _p.z += io * 5.6; _p.y += io * 0.65; fov += io * 8;
+  _p.x += io * INTRO_VIEW.offset[0]; _p.y += io * INTRO_VIEW.offset[1]; _p.z += io * INTRO_VIEW.offset[2]; fov += io * INTRO_VIEW.fov;
 
   /* parallax — a hand-held drift, never enough to break the frame */
   const par = 1 - smooth(0, 1.6, RIG.smooth) * .55;
@@ -4095,6 +4116,7 @@ function measure() {
     return clamp(el.offsetTop + el.offsetHeight * .5 - vpH() * .5, 0, maxScroll);
   });
   for (let i = 1; i < anchors.length; i++) anchors[i] = Math.max(anchors[i], anchors[i - 1] + 1);
+  KageReview.refreshNavigation(CAM, anchors, CAM_TENSION);
 }
 function progressFor(y) {
   if (y <= anchors[0]) return 0;
@@ -4438,15 +4460,16 @@ function makeGrain() {
 
 /* ============================================ 12 · the card viewports */
 const CARDS = [];
-function buildCards() {
-  const defs = [
+const CARD_PUSH = .55;
+const CARD_VIEWS = [
     { p: [-2.0, 1.60, -2.0], t: [0, 10.0, -34.0], fov: 40 },    /* the long climb */
     { p: [4.2, 2.90, -9.5], t: [6.4, 2.90, -14.4], fov: 40 },   /* lantern court  */
     { p: [3.4, 2.40, 2.0], t: [-1.0, -.60, -6.0], fov: 40 },    /* the wet court  */
     { p: [0.6, 3.40, -12.0], t: [0, 12.0, -40.0], fov: 26 }     /* hero window    */
   ];
+function buildCards() {
   $$('[data-view]').forEach(el => {
-    const d = defs[+el.dataset.view]; if (!d) return;
+    const d = CARD_VIEWS[+el.dataset.view]; if (!d) return;
     const c = new THREE.PerspectiveCamera(d.fov, 4 / 5, .3, 200);
     c.position.set(d.p[0], d.p[1], d.p[2]);
     c.lookAt(d.t[0], d.t[1], d.t[2]);
@@ -4502,7 +4525,7 @@ function aimCard(C, aspect) {
   const c = C.cam, u = c.userData;
   c.aspect = aspect; c.updateProjectionMatrix();
   _push.subVectors(u.look, u.home).normalize();
-  c.position.copy(u.home).addScaledVector(_push, u.push * .55);
+  c.position.copy(u.home).addScaledVector(_push, u.push * CARD_PUSH);
   c.lookAt(u.look);
 }
 /* Each viewport keeps its own buffer and only re-renders when it is moving
@@ -4687,7 +4710,7 @@ function frame(now) {
   RIG.my = damp(RIG.my, RIG.tmy, 2.6, dt);
   if (INTRO.t0) {
     const el = (now - INTRO.t0) / 1000;
-    RIG.intro = sat(el / 2.4);
+    RIG.intro = sat(el / INTRO_VIEW.duration);
     WORD.reveal = Math.min(1.2, el / 1.5);
   }
 
@@ -4709,7 +4732,7 @@ const JOBS = [
   ['Setting the gate', () => buildTorii()],
   ['Placing the stones', () => {
     buildRocks();
-    buildLantern(7.4, -7.0, 1.15); buildLantern(-7.6, -5.2, 1.0);
+    buildLantern('lantern-court-east', 7.4, -7.0, 1.15); buildLantern('lantern-court-west', -7.6, -5.2, 1.0);
     /* The pairs flanking the flight were given flat heights — 2 and PODIUM —
        and the flight does not reach either at those depths, so both pairs hung
        in the air. Solve the step under each one from the same constants the
@@ -4720,8 +4743,8 @@ const JOBS = [
     const cheekX   = z => (STAIR_W + (STEPS - stepAt(z)) * .052) / 2 + .45;
     [-14.4, -23.5].forEach((z, i) => {
       const sc = i ? .95 : .90;
-      buildLantern( cheekX(z), z, sc, cheekTop(z));
-      buildLantern(-cheekX(z), z, sc, cheekTop(z));
+      buildLantern('lantern-stairs-' + i + '-east', cheekX(z), z, sc, cheekTop(z));
+      buildLantern('lantern-stairs-' + i + '-west', -cheekX(z), z, sc, cheekTop(z));
     });
   }],
   ['Growing the maples', () => {
@@ -4742,6 +4765,8 @@ const JOBS = [
     if (WORLD.leaves) WORLD.leaves.mesh.layers.set(1);
     WORLD.ripples.forEach(r => r.layers.set(1));
     layoutWord(); measure();
+    WORD.glyphs.forEach((glyph, i) => { glyph.name = 'KAGE'[i]; });
+    KageReview.register(WORD.group, 'kage-wordmark', 'Kage wordmark', 'buildWordmark:layoutWord', 'Typography');
     /* nothing that casts a shadow ever moves, so bake it once */
     if (WANT_SHADOW && WORLD.key) { WORLD.key.shadow.autoUpdate = false; WORLD.key.shadow.needsUpdate = true; }
   }]
@@ -4786,7 +4811,7 @@ function start() {
   addEventListener('orientationchange', () => setTimeout(resize, 250));
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) { running = false; }
-    else if (!running) { running = true; tPrev = performance.now(); queue(); }
+    else if (!running && !REVIEW_CAPTURE) { running = true; tPrev = performance.now(); queue(); }
   });
   resize();
 
@@ -4809,7 +4834,11 @@ function start() {
   }
   running = true; tPrev = performance.now();
   INTRO.t0 = shot !== null ? 0 : (REDUCE ? performance.now() - 4000 : performance.now());
-  queue();
+  if (REVIEW_CAPTURE) {
+    running = false; clock = 0; RIG.intro = 1;
+    applyCamera(); updateWorld(0); render();
+  } else queue();
+  KageReview.ready(CAM, anchors, CAM_TENSION, INTRO_VIEW, CARD_VIEWS, CARD_PUSH);
   window.__kage = window.__secret = { RIG: RIG, WORLD: WORLD, WORD: WORD, CAM: CAM, POST: POST, renderer: renderer, scene: scene, camera: camera, anchors: () => anchors };
 }
 

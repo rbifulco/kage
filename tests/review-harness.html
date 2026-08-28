@@ -1,0 +1,73 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Kage review integration verification</title>
+<style>body{font:14px monospace;background:#111;color:#eee}iframe{width:1440px;height:900px}pre{white-space:pre-wrap}</style>
+<h1>Kage live bridge verification</h1>
+<button id="run">Run checks</button>
+<pre id="result">Ready</pre>
+<div id="frames"></div>
+<script type="module">
+const result = document.querySelector('#result');
+const site = new URL(new URLSearchParams(location.search).get('site') || '../', location.href);
+const pending = new Map(); let counter = 0;
+addEventListener('message', e => {
+  const p = pending.get(e.data?.requestId);
+  if (p && e.origin === site.origin && e.source === p.frame.contentWindow) { clearTimeout(p.timer); pending.delete(e.data.requestId); p.resolve(e.data); }
+});
+const request = (frame, type, data = {}) => new Promise((resolve, reject) => {
+  const requestId = `kage-check-${++counter}`;
+  const timer = setTimeout(() => { pending.delete(requestId); reject(new Error(`Timeout: ${type}`)); }, 30000);
+  pending.set(requestId, { resolve, timer, frame });
+  frame.contentWindow.postMessage({ type: `alterno:spatial-review:${type}`, requestId, ...data }, site.origin);
+});
+const frame = async url => {
+  const el = document.createElement('iframe'); el.src = url;
+  await new Promise(resolve => { el.onload = resolve; document.querySelector('#frames').append(el); });
+  return el;
+};
+const catalog = frame => request(frame, 'request', { profile: 'scene', progressive: true, geometryTransfer: { capability: 'geometry-transfer-v1', maxBytes: 67108864 } });
+const assert = (condition, message) => { if (!condition) throw new Error(message); };
+document.querySelector('#run').onclick = async () => {
+  document.querySelector('#run').disabled = true;
+  try {
+    result.textContent = 'Checking discovery…';
+    const discoveryFrame = await frame(site.href);
+    // Discovery is attached synchronously before the ordinary scene boots.
+    const discovery = await request(discoveryFrame, 'discovery-request');
+    assert(discovery.discovery.websiteUrl === site.href, 'Subpath-aware website URL');
+    discoveryFrame.remove();
+    result.textContent = 'Discovery passed. Waiting for capture…';
+    const captureReady = new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { removeEventListener('message', listen); reject(new Error('Capture not ready')); }, 60000);
+      function listen(e) { if (e.origin === site.origin && e.data?.type === 'alterno:spatial-review:ready') { clearTimeout(timer); removeEventListener('message', listen); resolve(); } }
+      addEventListener('message', listen);
+    });
+    const capture = await frame(discovery.discovery.liveCapture); await captureReady;
+    const first = await catalog(capture);
+    const actors = first.payload.scene.actors, assets = first.payload.assetCatalog.assets;
+    assert(actors.length === 37, `Expected 37 actors, got ${actors.length}`);
+    assert(first.payload.scene.navigationSequences.length === 6, 'Six authored journeys');
+    assert(actors.filter(a => a.assetId === 'stone-lantern').length === 6, 'Six distinct placements share one lantern design');
+    assert(new Set(actors.map(a => a.actorId)).size === actors.length, 'Unique actor IDs');
+    assert(actors.every(a => a.sourceRef.startsWith('index.html#') && a.bounds.size.every(Number.isFinite)), 'Source references and finite bounds');
+    const details = [];
+    for (const asset of assets) {
+      result.textContent = `Checking asset ${asset.id}…`;
+      const response = await request(capture, 'asset-request', { buildId: first.payload.buildId, assetId: asset.id, profile: 'review' });
+      assert(response.ok, `Detailed geometry: ${asset.id}: ${response.error}`);
+      assert(response.asset.nodes.length > 0, `Nodes: ${asset.id}`);
+      details.push({ id: asset.id, parts: response.asset.nodes.map(n => ({ id: n.id, name: n.name, sourceRef: n.sourceRef })), materials: response.asset.materials.map(m => m.id) });
+      if (['approach-torii', 'worship-hall', 'stone-lantern', 'vermilion-moon', 'maple-71'].includes(asset.id)) {
+        const resources = [...JSON.stringify(response.asset).matchAll(/"resourceId":"([^"]+)"/g)].map(m => m[1]);
+        assert(resources.length > 0, `Registered textures: ${asset.id}`);
+        const texture = await request(capture, 'resource-request', { resourceId: resources[0] });
+        assert(texture.ok && texture.bytes.byteLength > 0, `Texture transfer: ${asset.id}`);
+      }
+    }
+    const second = await catalog(capture);
+    assert(JSON.stringify(first.payload.scene) === JSON.stringify(second.payload.scene), 'Stable repeated capture');
+    result.textContent = JSON.stringify({ status: 'PASS', buildId: first.payload.buildId, actors: actors.length, assets: assets.length, journeys: first.payload.scene.navigationSequences.map(s => ({ id: s.id, stops: s.stops.length, segments: s.segments.length })), checks: ['cross-origin discovery', 'capture readiness', 'source mapping', 'shared lantern design', 'all detailed asset geometries', 'five representative texture transfers', 'stable repeated catalog'], details }, null, 2);
+  } catch (error) { result.textContent = `FAIL: ${error.message}`; }
+  document.querySelector('#run').disabled = false;
+};
+</script>
