@@ -98,5 +98,27 @@ errors. There was no prior package/build/test suite.
 - Original versus upgraded desktop appearance checked; r160's changed UV
   shader convention initially hid foreground planes, fixed with explicit
   `USE_UV`. Legacy lighting emits an expected deprecation warning.
-- Official hosted editor feedback interactions and production deployment are
-  checked separately; refer to the completion report for their outcome.
+- GitHub Pages built the `spatial-review-pages` branch root successfully at
+  `https://rbifulco.github.io/kage/`, with HTTPS enforced. The published HTML
+  returns 200, has no framing-blocking headers, and its bundle SHA-256 matches
+  the verified local bundle. The deployed page produced no observed JS errors.
+- Official editor discovery connects to the production site. Scene refresh
+  reports 37 actors and six journeys. The first scene import was slow and
+  required a refresh; asset loading is progressive.
+- Scene test: moved `approach-torii` by +0.25 m on X; compact feedback identified
+  `index.html#buildTorii` and the intended bounds-centred position. Undo restored
+  an empty change set. All six lantern placements remain distinct in the catalog.
+- Path test: selected the shared Sanmon stop (camera [-5.6, 2.35, 11.6], aim
+  [1.2, 5.6, -14], FOV 48), changed camera X to -5.35, and copied feedback.
+  The operation was `move-stop`, sequence `kyoto-night-walk`, stop `sanmon`,
+  source `index.html#CAM[1]`. Undo restored X=-5.6. All six journeys appear in
+  the Paths workspace; exhaustive manual scrubbing of every segment is not done.
+- Asset test: the official editor loaded the torii's 1,668 triangles, 26 nodes,
+  three materials and visible textures. Selecting `Kasagi crown` exposed
+  `index.html#buildTorii#approach-torii-kasagi-crown-1-23`, local position
+  [0, 9.94, 0], normals and UV0. Automated gizmo drags did not produce a change,
+  so component transform export remains unverified. No asset feedback was left.
+- Surface pin/comment export, exhaustive per-journey UI interactions, mobile
+  rendering, and full actor/material identity comparisons across page rebuilds
+  remain unverified. The complete manual review-loop checklist is therefore
+  not claimed as passed. All tested scene/path edits were undone.
