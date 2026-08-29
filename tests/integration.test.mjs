@@ -3,8 +3,19 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import * as THREE from 'three';
-import { SceneAssetRegistry, attachSceneAssetRegistryBridge, attachSpatialReviewDiscoveryBridge, SPATIAL_REVIEW_REQUEST, SPATIAL_REVIEW_DISCOVERY_REQUEST, SPATIAL_REVIEW_RESOURCE_REQUEST } from '@alterno-dev/spatial-review';
+import {
+  SceneAssetRegistry,
+  SPATIAL_REVIEW_ASSEMBLIES_CAPABILITY,
+  SPATIAL_REVIEW_CATALOG,
+  SPATIAL_REVIEW_DISCOVERY_REQUEST,
+  SPATIAL_REVIEW_REQUEST,
+  SPATIAL_REVIEW_RESOURCE_REQUEST,
+  attachSceneAssetRegistryBridge,
+  attachSpatialReviewDiscoveryBridge,
+  validateSceneOwnership,
+} from '@alterno-dev/spatial-review';
 import { buildScrollJourney, buildIntroJourney, buildCardJourneys } from '../src/navigation-review.js';
+import { REVIEW_ASSEMBLIES, REVIEW_OWNER_IDS, registerReviewAssemblies } from '../src/review-structure.js';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 const readConstant = name => structuredClone(vm.runInNewContext('(' + html.match(new RegExp(`const ${name} = ([\\s\\S]*?);`))[1] + ')'));
@@ -54,6 +65,34 @@ test('intro and card routes derive from the same runtime inputs', () => {
   cards.forEach(card => assert.ok(Math.abs(new THREE.Vector3(...card.stops[0].camera).distanceTo(new THREE.Vector3(...card.stops[1].camera)) - readConstant('CARD_PUSH')) < 1e-12));
 });
 
+test('scene ownership is explicit, hierarchical, valid, and backward compatible', () => {
+  const registry = new SceneAssetRegistry('ownership-test');
+  registerReviewAssemblies(registry);
+
+  const ground = new THREE.Mesh(new THREE.BoxGeometry(10, .2, 8), new THREE.MeshStandardMaterial());
+  ground.position.set(0, -.1, -4);
+  const hall = new THREE.Mesh(new THREE.BoxGeometry(4, 3, 2), new THREE.MeshStandardMaterial());
+  hall.position.set(0, 1.5, -8);
+  registry.register({ actorId: 'courtyard-ground', assetId: 'courtyard-ground', name: 'Wet courtyard', sourceRef: 'index.html#buildShell:floor', category: 'Ground', root: ground, parentAssemblyId: REVIEW_OWNER_IDS.grounds });
+  registry.register({ actorId: 'worship-hall', assetId: 'worship-hall', name: 'Worship hall', sourceRef: 'index.html#buildTemple', category: 'Architecture', root: hall, parentAssemblyId: REVIEW_OWNER_IDS.hall });
+
+  const scene = registry.toScene(true);
+  assert.equal(scene.ownership.capability, SPATIAL_REVIEW_ASSEMBLIES_CAPABILITY);
+  assert.equal(scene.ownership.mode, 'hierarchical');
+  assert.deepEqual(scene.assemblies.map(assembly => assembly.assemblyId), REVIEW_ASSEMBLIES.map(assembly => assembly.assemblyId));
+  assert.equal(scene.assemblies.find(assembly => assembly.assemblyId === REVIEW_OWNER_IDS.hall).parentAssemblyId, REVIEW_OWNER_IDS.grounds);
+  assert.equal(scene.actors.find(actor => actor.actorId === 'worship-hall').parentAssemblyId, REVIEW_OWNER_IDS.hall);
+  assert.deepEqual(scene.actors.find(actor => actor.actorId === 'worship-hall').localTransform.position, [0, 1.5, -8]);
+  assert.ok(scene.assemblies.find(assembly => assembly.assemblyId === REVIEW_OWNER_IDS.grounds).bounds.size.every(Number.isFinite));
+  assert.deepEqual(validateSceneOwnership(scene), []);
+
+  const fallback = registry.toScene(false);
+  assert.equal(fallback.ownership.mode, 'flattened');
+  assert.equal(fallback.assemblies, undefined);
+  assert.ok(fallback.actors.every(actor => actor.parentAssemblyId === undefined && actor.localTransform === undefined));
+  assert.deepEqual(fallback.actors.map(actor => actor.transform), scene.actors.map(actor => actor.transform));
+});
+
 test('both bridges enforce origin and parent-window checks, and detach cleanly', async () => {
   const listeners = new Set(), messages = [];
   const parent = { postMessage: (...args) => messages.push(args) };
@@ -61,13 +100,14 @@ test('both bridges enforce origin and parent-window checks, and detach cleanly',
   global.window = { location: new URL('https://rbifulco.github.io/kage/'), parent, opener: null, setTimeout, addEventListener: (name, f) => listeners.add(f), removeEventListener: (name, f) => listeners.delete(f) };
   try {
     const registry = new SceneAssetRegistry('test');
-    registry.register({ actorId: 'gate', assetId: 'gate', name: 'Gate', sourceRef: 'index.html#buildTorii', category: 'Architecture', root: new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshStandardMaterial()) });
+    registerReviewAssemblies(registry);
+    registry.register({ actorId: 'gate', assetId: 'gate', name: 'Gate', sourceRef: 'index.html#buildTorii', category: 'Architecture', parentAssemblyId: REVIEW_OWNER_IDS.courtyard, root: new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshStandardMaterial()) });
     const options = { allowOfficialEditor: true, allowedOrigins: [] };
     const detach = [attachSpatialReviewDiscoveryBridge({ name: 'Kage', websiteUrl: 'https://rbifulco.github.io/kage/', liveCapture: './?spatial-review-capture=1' }, options), attachSceneAssetRegistryBridge(registry, options)];
     messages.length = 0; // SDK's unprotected ready notification is not a catalog.
-    const send = (origin, source = parent) => {
+    const send = (origin, source = parent, suffix = '', data = {}) => {
       for (const type of [SPATIAL_REVIEW_DISCOVERY_REQUEST, SPATIAL_REVIEW_REQUEST, SPATIAL_REVIEW_RESOURCE_REQUEST])
-        for (const listener of listeners) listener({ origin, source, data: { type, requestId: origin + type, resourceId: 'unregistered' } });
+        for (const listener of listeners) listener({ origin, source, data: { type, requestId: origin + type + suffix, resourceId: 'unregistered', ...data } });
     };
     send('https://evil.example'); send('https://spatial-review.alterno.dev.evil.example'); send('http://localhost:4184');
     send('https://spatial-review.alterno.dev', { postMessage: parent.postMessage });
@@ -78,6 +118,14 @@ test('both bridges enforce origin and parent-window checks, and detach cleanly',
     assert.equal(messages.length, 3);
     assert.ok(messages.every(([, origin]) => origin === 'https://spatial-review.alterno.dev'));
     assert.ok(messages.some(([message]) => message.payload?.scene.actors[0].actorId === 'gate'));
+    assert.equal(messages.find(([message]) => message.type === SPATIAL_REVIEW_CATALOG)[0].payload.scene.ownership.mode, 'flattened');
+    messages.length = 0;
+    send('https://spatial-review.alterno.dev', parent, '-hierarchical', { capabilities: [SPATIAL_REVIEW_ASSEMBLIES_CAPABILITY] });
+    await new Promise(resolve => setTimeout(resolve, 10));
+    const hierarchical = messages.find(([message]) => message.type === SPATIAL_REVIEW_CATALOG)[0].payload.scene;
+    assert.equal(hierarchical.ownership.mode, 'hierarchical');
+    assert.equal(hierarchical.assemblies.length, REVIEW_ASSEMBLIES.length);
+    assert.equal(hierarchical.actors[0].parentAssemblyId, REVIEW_OWNER_IDS.courtyard);
     detach.forEach(f => f()); assert.equal(listeners.size, 0);
     const revoke = attachSpatialReviewDiscoveryBridge({ name: 'Kage', liveCapture: './' }, { allowOfficialEditor: false });
     messages.length = 0; send('https://spatial-review.alterno.dev'); assert.equal(messages.length, 0); revoke();

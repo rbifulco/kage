@@ -1,11 +1,13 @@
 import * as THREE from 'three';
 import { SceneAssetRegistry, attachSceneAssetRegistryBridge, attachSpatialReviewDiscoveryBridge } from '@alterno-dev/spatial-review';
 import { buildScrollJourney, buildIntroJourney, buildCardJourneys } from './navigation-review.js';
+import { registerReviewAssemblies, REVIEW_OWNER_IDS } from './review-structure.js';
 
 // Preserve r149's authored colour values; the website and SDK share ONE runtime.
 THREE.ColorManagement.enabled = false;
 window.THREE = THREE;
 const registry = new SceneAssetRegistry(__KAGE_BUILD_ID__);
+registerReviewAssemblies(registry);
 // Explicit approval recorded in SPATIAL_REVIEW.md; no other production origins.
 const bridgeOptions = { allowOfficialEditor: true, allowedOrigins: [] };
 const websiteUrl = new URL('./', location.href).href;
@@ -23,7 +25,8 @@ function stopBridges() {
 
 window.KageReview = {
   capture,
-  register(root, actorId, name, source, category = 'Architecture', assetId = actorId) {
+  owners: REVIEW_OWNER_IDS,
+  register(root, actorId, name, source, category = 'Architecture', assetId = actorId, parentAssemblyId) {
     root.name ||= name;
     root.traverse(node => {
       if (!node.material) return;
@@ -34,7 +37,7 @@ window.KageReview = {
         }
       }
     });
-    registry.register({ root, actorId, assetId, name, category, sourceRef: `index.html#${source}`, order: registry.size });
+    registry.register({ root, actorId, assetId, name, category, parentAssemblyId, sourceRef: `index.html#${source}`, order: registry.size });
   },
   ready(CAM, anchors, tension, intro, cards, push) {
     registry.registerNavigationSequence(buildScrollJourney(CAM, anchors, tension));

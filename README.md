@@ -15,7 +15,7 @@ An interactive five-chapter night walk through a Kyoto mountain temple, rendered
 
 ## How it is made
 
-Kage is a static site. `index.html` contains the document structure, CSS, procedural scene construction, scroll choreography, and interaction logic. This fork adds Spatial Review 0.4.0 and a shared Three.js r160 runtime, bundled into a checked-in static asset. The original project used Three.js r149.
+Kage is a static site. `index.html` contains the document structure, CSS, procedural scene construction, scroll choreography, and interaction logic. This fork adds Spatial Review 0.5.0 and a shared Three.js r160 runtime, bundled into a checked-in static asset. The original project used Three.js r149.
 
 The temple, torii, lanterns, moon, terrain, rain, leaves, fog, and post-processing are constructed at runtime. Optimized WebP scene plates and foreground cutouts sit in normal HTML layers, giving the page its collage-like depth while keeping the camera path and lighting live.
 
@@ -39,9 +39,11 @@ The committed bundle runs without a build or runtime network dependency. After e
 
 GitHub Pages publishes the repository root of branch `spatial-review-pages`.
 See [integration details, access approval, source mappings, and limitations](SPATIAL_REVIEW.md).
-The browser integration exports 37 placements, 32 canonical assets, the six-stop
-night walk, the opening dolly, and four card hover journeys. The approved editor
-is `https://spatial-review.alterno.dev`; no other production editor is enabled.
+The browser integration exports three explicit place assemblies, 37 placements,
+32 canonical assets, the six-stop night walk, the opening dolly, and four card
+hover journeys. Older consumers receive the same placements through the SDK's
+flat world-space fallback. The approved editor is
+`https://spatial-review.alterno.dev`; no other production editor is enabled.
 
 For a live bridge test, serve this repository on two localhost ports and open
 `/tests/review-harness.html?site=http%3A%2F%2F127.0.0.1%3A4183%2F`
@@ -55,7 +57,15 @@ kage/
 ├── PROMPT.md
 ├── README.md
 ├── assets/
-│   └── kage-preview.webp
+│   ├── kage-preview.webp
+│   └── kage-runtime.js
+├── src/
+│   ├── navigation-review.js
+│   ├── review-structure.js
+│   └── spatial-review.js
+├── tests/
+│   ├── integration.test.mjs
+│   └── review-harness.html
 └── secret-pathways-assets/
     ├── fonts.css
     ├── three.min.js

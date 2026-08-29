@@ -25,7 +25,12 @@ const frame = async url => {
   await new Promise(resolve => { el.onload = resolve; document.querySelector('#frames').append(el); });
   return el;
 };
-const catalog = frame => request(frame, 'request', { profile: 'scene', progressive: true, geometryTransfer: { capability: 'geometry-transfer-v1', maxBytes: 67108864 } });
+const catalog = (frame, hierarchical = true) => request(frame, 'request', {
+  profile: 'scene',
+  capabilities: hierarchical ? ['scene-assemblies-v1'] : [],
+  progressive: true,
+  geometryTransfer: { capability: 'geometry-transfer-v1', maxBytes: 67108864 },
+});
 const assert = (condition, message) => { if (!condition) throw new Error(message); };
 document.querySelector('#run').onclick = async () => {
   document.querySelector('#run').disabled = true;
@@ -39,14 +44,20 @@ document.querySelector('#run').onclick = async () => {
     result.textContent = 'Discovery passed. Waiting for capture…';
     const captureReady = new Promise((resolve, reject) => {
       const timer = setTimeout(() => { removeEventListener('message', listen); reject(new Error('Capture not ready')); }, 60000);
-      function listen(e) { if (e.origin === site.origin && e.data?.type === 'alterno:spatial-review:ready') { clearTimeout(timer); removeEventListener('message', listen); resolve(); } }
+      function listen(e) { if (e.origin === site.origin && e.data?.type === 'alterno:spatial-review:ready') { clearTimeout(timer); removeEventListener('message', listen); resolve(e.data); } }
       addEventListener('message', listen);
     });
-    const capture = await frame(discovery.discovery.liveCapture); await captureReady;
+    const capture = await frame(discovery.discovery.liveCapture); const ready = await captureReady;
+    assert(ready.assemblies === 3 && ready.capabilities?.includes('scene-assemblies-v1'), 'Three ownership assemblies advertised');
     const first = await catalog(capture);
-    const actors = first.payload.scene.actors, assets = first.payload.assetCatalog.assets;
+    const scene = first.payload.scene, actors = scene.actors, assets = first.payload.assetCatalog.assets;
     assert(actors.length === 37, `Expected 37 actors, got ${actors.length}`);
-    assert(first.payload.scene.navigationSequences.length === 6, 'Six authored journeys');
+    assert(scene.ownership?.mode === 'hierarchical' && scene.ownership.capability === 'scene-assemblies-v1', 'Hierarchical ownership negotiated');
+    assert(scene.assemblies.length === 3, `Expected 3 assemblies, got ${scene.assemblies.length}`);
+    assert(scene.assemblies.find(a => a.assemblyId === 'worship-hall-complex')?.parentAssemblyId === 'temple-grounds', 'Nested hall ownership');
+    assert(actors.find(a => a.actorId === 'worship-hall')?.parentAssemblyId === 'worship-hall-complex', 'Hall placement ownership');
+    assert(actors.find(a => a.actorId === 'approach-torii')?.parentAssemblyId === 'approach-courtyard', 'Courtyard placement ownership');
+    assert(scene.navigationSequences.length === 6, 'Six authored journeys');
     assert(actors.filter(a => a.assetId === 'stone-lantern').length === 6, 'Six distinct placements share one lantern design');
     assert(new Set(actors.map(a => a.actorId)).size === actors.length, 'Unique actor IDs');
     assert(actors.every(a => a.sourceRef.startsWith('index.html#') && a.bounds.size.every(Number.isFinite)), 'Source references and finite bounds');
@@ -66,7 +77,10 @@ document.querySelector('#run').onclick = async () => {
     }
     const second = await catalog(capture);
     assert(JSON.stringify(first.payload.scene) === JSON.stringify(second.payload.scene), 'Stable repeated capture');
-    result.textContent = JSON.stringify({ status: 'PASS', buildId: first.payload.buildId, actors: actors.length, assets: assets.length, journeys: first.payload.scene.navigationSequences.map(s => ({ id: s.id, stops: s.stops.length, segments: s.segments.length })), checks: ['cross-origin discovery', 'capture readiness', 'source mapping', 'shared lantern design', 'all detailed asset geometries', 'five representative texture transfers', 'stable repeated catalog'], details }, null, 2);
+    const fallback = await catalog(capture, false);
+    assert(fallback.payload.scene.ownership?.mode === 'flattened' && !fallback.payload.scene.assemblies, 'Flat compatibility fallback');
+    assert(fallback.payload.scene.actors.every(a => !a.parentAssemblyId && !a.localTransform), 'Fallback actors use world-space records');
+    result.textContent = JSON.stringify({ status: 'PASS', buildId: first.payload.buildId, assemblies: scene.assemblies.map(a => ({ id: a.assemblyId, parent: a.parentAssemblyId, actors: actors.filter(actor => actor.parentAssemblyId === a.assemblyId).length })), actors: actors.length, assets: assets.length, journeys: scene.navigationSequences.map(s => ({ id: s.id, stops: s.stops.length, segments: s.segments.length })), checks: ['cross-origin discovery', 'capture readiness', 'hierarchical ownership', 'flat compatibility fallback', 'source mapping', 'shared lantern design', 'all detailed asset geometries', 'five representative texture transfers', 'stable repeated catalog'], details }, null, 2);
   } catch (error) { result.textContent = `FAIL: ${error.message}`; }
   document.querySelector('#run').disabled = false;
 };

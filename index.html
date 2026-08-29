@@ -2540,7 +2540,7 @@ function buildShell() {
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(150, 150), floorMat);
   floor.rotation.x = -Math.PI / 2; floor.position.set(0, 0, -18); floor.receiveShadow = true;
   scene.add(floor);
-  KageReview.register(floor, 'courtyard-ground', 'Wet courtyard', 'buildShell:floor', 'Ground');
+  KageReview.register(floor, 'courtyard-ground', 'Wet courtyard', 'buildShell:floor', 'Ground', 'courtyard-ground', KageReview.owners.grounds);
   WORLD.floor = floor; WORLD.floorMat = floorMat;
 
   /* The podium and the flight use their own material: the mirror shader below
@@ -2556,10 +2556,10 @@ function buildShell() {
   const plat = new THREE.Mesh(new THREE.BoxGeometry(42, PODIUM, 24), platMat);
   plat.position.set(0, PODIUM / 2, -45); plat.receiveShadow = true; plat.castShadow = true;
   scene.add(plat);
-  KageReview.register(plat, 'temple-podium', 'Temple podium', 'buildShell:plat', 'Ground');
+  KageReview.register(plat, 'temple-podium', 'Temple podium', 'buildShell:plat', 'Ground', 'temple-podium', KageReview.owners.hall);
   const cope = new THREE.Mesh(new THREE.BoxGeometry(43, .34, 25), wallMat);
   cope.position.set(0, PODIUM - .17, -45); cope.receiveShadow = true; scene.add(cope);
-  KageReview.register(cope, 'podium-coping', 'Podium coping', 'buildShell:cope', 'Ground');
+  KageReview.register(cope, 'podium-coping', 'Podium coping', 'buildShell:cope', 'Ground', 'podium-coping', KageReview.owners.hall);
 
   /* The flight. Twenty-six risers merged into one buffer — as separate meshes
      it is twenty-six draw calls for a shape nobody ever gets close to. */
@@ -2574,10 +2574,10 @@ function buildShell() {
   }
   const stair = new THREE.Mesh(mergeGeos(treads), platMat);
   stair.receiveShadow = true; stair.castShadow = true; scene.add(stair);
-  KageReview.register(stair, 'approach-stairs', 'Approach stairs', 'buildShell:stair', 'Ground');
+  KageReview.register(stair, 'approach-stairs', 'Approach stairs', 'buildShell:stair', 'Ground', 'approach-stairs', KageReview.owners.courtyard);
   const rail = new THREE.Mesh(mergeGeos(cheeks), wallMat);
   rail.receiveShadow = true; rail.castShadow = true; scene.add(rail);
-  KageReview.register(rail, 'stair-cheeks', 'Stair cheeks', 'buildShell:rail', 'Ground');
+  KageReview.register(rail, 'stair-cheeks', 'Stair cheeks', 'buildShell:rail', 'Ground', 'stair-cheeks', KageReview.owners.courtyard);
 }
 
 /* ------------------------------------------------------- the worship hall
@@ -2697,7 +2697,7 @@ function buildTemple() {
   });
 
   scene.add(g); WORLD.temple = g;
-  KageReview.register(g, 'worship-hall', 'Worship hall', 'buildTemple');
+  KageReview.register(g, 'worship-hall', 'Worship hall', 'buildTemple', 'Architecture', 'worship-hall', KageReview.owners.hall);
 
   /* the glow the hall pushes out over its own steps */
   const spill = new THREE.Mesh(new THREE.PlaneGeometry(30, 16),
@@ -2817,7 +2817,7 @@ function buildTorii() {
   const GS = .72;
   g.position.set(0, -BASE * GS, -8.6); g.scale.setScalar(GS);
   scene.add(g); WORLD.torii = g;
-  KageReview.register(g, 'approach-torii', 'Approach torii', 'buildTorii');
+  KageReview.register(g, 'approach-torii', 'Approach torii', 'buildTorii', 'Architecture', 'approach-torii', KageReview.owners.courtyard);
 }
 
 function buildLantern(id, x, z, s, y) {
@@ -2864,7 +2864,7 @@ function buildLantern(id, x, z, s, y) {
 
   g.position.set(x, y || 0, z); g.scale.setScalar(s || 1);
   scene.add(g);
-  KageReview.register(g, id, 'Stone lantern — ' + id.replace('lantern-', ''), 'JOBS:' + id + ':buildLantern', 'Lanterns', 'stone-lantern');
+  KageReview.register(g, id, 'Stone lantern — ' + id.replace('lantern-', ''), 'JOBS:' + id + ':buildLantern', 'Lanterns', 'stone-lantern', KageReview.owners.courtyard);
   return g;
 }
 
@@ -2935,7 +2935,8 @@ function buildMaple(seed, x, z, scale) {
   g.position.set(x, 0, z); g.scale.setScalar(scale || 1);
   g.rotation.y = rnd() * TAU;
   scene.add(g);
-  KageReview.register(g, 'maple-' + seed, 'Maple ' + seed, 'JOBS:buildMaple(' + seed + ')', 'Trees');
+  const actorId = 'maple-' + seed;
+  KageReview.register(g, actorId, 'Maple ' + seed, 'JOBS:buildMaple(' + seed + ')', 'Trees', actorId, KageReview.owners.courtyard);
   /* leaves breathe in the wind */
   leafMat.onBeforeCompile = sh => {
     sh.uniforms.uT = WORLD.uT;
@@ -2968,7 +2969,8 @@ function buildRocks() {
     m.rotation.set(rnd(), rnd() * TAU, rnd() * .4);
     m.castShadow = true; m.receiveShadow = true;
     scene.add(m);
-    KageReview.register(m, 'court-rock-' + i, 'Court rock ' + (i + 1), 'buildRocks:spots[' + i + ']', 'Rocks');
+    const actorId = 'court-rock-' + i;
+    KageReview.register(m, actorId, 'Court rock ' + (i + 1), 'buildRocks:spots[' + i + ']', 'Rocks', actorId, KageReview.owners.courtyard);
   });
 }
 
