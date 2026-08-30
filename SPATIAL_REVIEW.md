@@ -29,7 +29,7 @@ classes, capture route, and framing scope are unchanged.
 | Context | Ground, podium, coping, stairs, rails, sky, ridges, moon, foreground, wordmark | Corresponding `buildShell`, `buildMoon`, `buildForeground`, `buildWordmark` definitions |
 | Asset | Named construction parts; six lanterns share `stone-lantern`; seeded maples and deformed rocks are distinct variants | Named meshes in the same construction functions |
 | Path | Six-stop Kyoto night walk, opening dolly, four card hover views | `CAM`, `buildRig`, `progressFor`, `INTRO_VIEW`, `applyCamera`, `CARD_VIEWS`, `CARD_PUSH`, `aimCard` |
-| Capture | Fixed high-quality 1440×900 authored view, completed intro, clock zero; all construction jobs complete | `start`, `KageReview.ready` |
+| Capture | Fixed high-detail 1440×900 authored view at DPR 1, completed intro, clock zero; post-processing and shadow maps disabled; all construction jobs complete | `start`, `KageReview.ready` |
 
 ## Run and build
 
@@ -96,7 +96,9 @@ pageshow (including the back/forward cache).
   Maple foliage geometry is retained. No replacement geometry proxies are used.
 - The editor does not reproduce bloom, custom shaders, reflection, scene fog,
   light flicker or animated foliage. Generated material textures are transferred
-  live; judge final atmosphere in Kage itself.
+  live; judge final atmosphere in Kage itself. Capture also disables Kage's own
+  bloom and shadow maps to keep concurrent editor frames lightweight; actor and
+  asset geometry remains at the authored high-detail setting.
 - Paths represent authored desktop motion. Pointer parallax, scroll damping,
   reduced-motion scheduling and responsive aspect compensation remain runtime
   modifiers, not editable navigation controls. Capture freezes these modifiers
@@ -114,10 +116,12 @@ The pre-upgrade 0.4.0 baseline passed its five Node checks and production build.
 The normal website and previously verified flat scene/path/asset behavior were
 used as regression references.
 
-- `npm test`: six checks pass. The added ownership test validates the three
+- `npm test`: seven checks pass. The ownership test validates the three
   assemblies, parent-local actor transforms, schema/graph constraints, explicit
-  origin checks, hierarchical capability negotiation, and flat compatibility.
-- `npm run build` produces `kage-sr-0.5.0-992ccabfe88918a2`; `git diff --check`
+  origin checks, hierarchical capability negotiation, and flat compatibility;
+  the capture-profile check locks high-detail geometry with post-processing,
+  shadows, and adaptive DPR disabled.
+- `npm run build` produces `kage-sr-0.5.0-45c54501de04009a`; `git diff --check`
   passes. The checked-in bundle resolves SDK/protocol 0.5.0 and Three.js 0.160.1.
 - The browser harness across localhost ports 4183/4184 passes cross-origin
   discovery, capture readiness, three advertised and negotiated assemblies,
@@ -127,6 +131,10 @@ used as regression references.
   navigation moved the authored page state while the 0.5.0 review-ready marker
   remained present. The only observed console warning is Three.js r160's already
   documented `useLegacyLights` deprecation.
+- The optimized local capture advertised and enforced
+  `post=0&shadow=0&dpr=1`, produced a 1440×900 drawing buffer, and reached the
+  `kage-sr-0.5.0-45c54501de04009a` ready marker. The official editor received
+  that exact URL in each of its three source frames and resolved all 37 meshes.
 - The official editor connected to the local capture and displayed Ownership as
   `World → Temple grounds (26) → Approach courtyard (22)` plus
   `Worship hall complex (3)`. Hiding Temple grounds left exactly the 11
@@ -146,7 +154,7 @@ used as regression references.
   representative textures.
 
 The production GitHub Pages URL still serves the previously published build;
-deploying this local 0.5.0 bundle was not part of this update. Rotation, scaling,
+deploying this optimized local 0.5.0 bundle was not part of this update. Rotation, scaling,
 reparenting, independent child moves, new surface comments, exhaustive journey
 scrubbing, mobile rendering, and a source-change refresh remain unverified. The
 complete manual review-loop checklist is therefore not claimed as fully passed.

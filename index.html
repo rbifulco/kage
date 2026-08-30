@@ -1215,7 +1215,10 @@ body[data-layout-footer="b"] .foot-base span:last-child{ text-align:right; }
 /* ------------------------------------------------------------ 0 · basics */
 const Q      = new URLSearchParams(location.search);
 const REVIEW_CAPTURE = window.KageReview.capture;
-if (REVIEW_CAPTURE) { Q.set('shot', '0'); Q.set('q', 'high'); Q.set('adapt', '0'); }
+if (REVIEW_CAPTURE) {
+  Q.set('shot', '0'); Q.set('q', 'high'); Q.set('adapt', '0');
+  Q.set('post', '0'); Q.set('shadow', '0'); Q.set('dpr', '1');
+}
 const qs     = (k, d) => { const v = Q.get(k); return v === null ? d : v; };
 const qn     = (k, d) => { const v = Q.get(k); return v === null ? d : parseFloat(v); };
 const REDUCE = matchMedia('(prefers-reduced-motion: reduce)').matches;

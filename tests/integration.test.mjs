@@ -18,6 +18,7 @@ import { buildScrollJourney, buildIntroJourney, buildCardJourneys } from '../src
 import { REVIEW_ASSEMBLIES, REVIEW_OWNER_IDS, registerReviewAssemblies } from '../src/review-structure.js';
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+const integration = await readFile(new URL('../src/spatial-review.js', import.meta.url), 'utf8');
 const readConstant = name => structuredClone(vm.runInNewContext('(' + html.match(new RegExp(`const ${name} = ([\\s\\S]*?);`))[1] + ')'));
 const CAM = readConstant('CAM');
 const tension = readConstant('CAM_TENSION');
@@ -135,4 +136,12 @@ test('both bridges enforce origin and parent-window checks, and detach cleanly',
 test('embedded website script parses after runtime migration', () => {
   const inline = html.match(/<script>\s*([\s\S]*?)<\/script>/)[1];
   assert.doesNotThrow(() => new vm.Script(inline));
+});
+
+test('review capture preserves authored geometry while disabling presentation-only GPU costs', () => {
+  const expected = 'spatial-review-capture=1&shot=0&q=high&adapt=0&post=0&shadow=0&dpr=1';
+  assert.match(integration, new RegExp(expected));
+  for (const [key, value] of [['shot', '0'], ['q', 'high'], ['adapt', '0'], ['post', '0'], ['shadow', '0'], ['dpr', '1']]) {
+    assert.match(html, new RegExp(`Q\\.set\\('${key}', '${value}'\\)`));
+  }
 });

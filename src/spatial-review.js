@@ -11,7 +11,10 @@ registerReviewAssemblies(registry);
 // Explicit approval recorded in SPATIAL_REVIEW.md; no other production origins.
 const bridgeOptions = { allowOfficialEditor: true, allowedOrigins: [] };
 const websiteUrl = new URL('./', location.href).href;
-const liveCapture = new URL('?spatial-review-capture=1&shot=0&q=high&adapt=0', websiteUrl).href;
+// Keep review geometry at authored high detail, but omit presentation-only GPU
+// work. The editor may keep several capture frames alive at once, so each one
+// uses a deterministic 1x buffer without post-processing or shadow maps.
+const liveCapture = new URL('?spatial-review-capture=1&shot=0&q=high&adapt=0&post=0&shadow=0&dpr=1', websiteUrl).href;
 const capture = new URLSearchParams(location.search).get('spatial-review-capture') === '1';
 let stopDiscovery, stopCapture, ready = false;
 
