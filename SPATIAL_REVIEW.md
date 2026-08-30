@@ -30,6 +30,7 @@ classes, capture route, and framing scope are unchanged.
 | Asset | Named construction parts; six lanterns share `stone-lantern`; seeded maples and deformed rocks are distinct variants | Named meshes in the same construction functions |
 | Path | Six-stop Kyoto night walk, opening dolly, four card hover views | `CAM`, `buildRig`, `progressFor`, `INTRO_VIEW`, `applyCamera`, `CARD_VIEWS`, `CARD_PUSH`, `aimCard` |
 | Capture | Fixed high-detail 1440×900 authored view at DPR 1, completed intro, clock zero; post-processing and shadow maps disabled; all construction jobs complete | `start`, `KageReview.ready` |
+| Performance | Publish project-relative discovery and catalog-ready status; keep eager authoritative roots but serialize geometry only on request. The current bridge enforces 32 MiB per family; an asset-stream-capable SDK additionally activates the configured two-request, 48 MiB in-flight, and 24-request queue bounds. | `src/spatial-review.js`; `.well-known/spatial-review.json` |
 
 ## Run and build
 
@@ -104,8 +105,10 @@ pageshow (including the back/forward cache).
   modifiers, not editable navigation controls. Capture freezes these modifiers
   for repeatability. Relative input weights are preserved; editor playback may
   use a different easing for FOV.
-- Discovery is browser-only; no static JSON fallbacks are advertised and CLI
-  discovery validation is not applicable.
+- A project-relative `.well-known/spatial-review.json` advertises the same live
+  capture. New clients find it below the GitHub Pages project path instead of
+  probing only the `github.io` origin root; the origin-checked browser bridge
+  remains the fallback. No static scene or asset documents are published.
 - The sky, two ridges, moon, six foreground planes, and wordmark remain
   World-owned by design. They are scene/cinematic context, not contents of an
   architectural owner. Categories and shared assets do not imply ownership.
@@ -116,12 +119,13 @@ The pre-upgrade 0.4.0 baseline passed its five Node checks and production build.
 The normal website and previously verified flat scene/path/asset behavior were
 used as regression references.
 
-- `npm test`: seven checks pass. The ownership test validates the three
+- `npm test`: eight checks pass. The ownership test validates the three
   assemblies, parent-local actor transforms, schema/graph constraints, explicit
   origin checks, hierarchical capability negotiation, and flat compatibility;
   the capture-profile check locks high-detail geometry with post-processing,
-  shadows, and adaptive DPR disabled.
-- `npm run build` produces `kage-sr-0.5.0-45c54501de04009a`; `git diff --check`
+  shadows, and adaptive DPR disabled; the streaming check locks project-relative
+  discovery, catalog status, and byte/concurrency/in-flight limits.
+- `npm run build` produces `kage-sr-0.5.0-92f92f4214ca3e80`; `git diff --check`
   passes. The checked-in bundle resolves SDK/protocol 0.5.0 and Three.js 0.160.1.
 - The browser harness across localhost ports 4183/4184 passes cross-origin
   discovery, capture readiness, three advertised and negotiated assemblies,

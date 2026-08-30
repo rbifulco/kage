@@ -19,6 +19,7 @@ import { REVIEW_ASSEMBLIES, REVIEW_OWNER_IDS, registerReviewAssemblies } from '.
 
 const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
 const integration = await readFile(new URL('../src/spatial-review.js', import.meta.url), 'utf8');
+const discovery = JSON.parse(await readFile(new URL('../.well-known/spatial-review.json', import.meta.url), 'utf8'));
 const readConstant = name => structuredClone(vm.runInNewContext('(' + html.match(new RegExp(`const ${name} = ([\\s\\S]*?);`))[1] + ')'));
 const CAM = readConstant('CAM');
 const tension = readConstant('CAM_TENSION');
@@ -144,4 +145,15 @@ test('review capture preserves authored geometry while disabling presentation-on
   for (const [key, value] of [['shot', '0'], ['q', 'high'], ['adapt', '0'], ['post', '0'], ['shadow', '0'], ['dpr', '1']]) {
     assert.match(html, new RegExp(`Q\\.set\\('${key}', '${value}'\\)`));
   }
+});
+
+test('project-relative discovery and streamed geometry are explicitly bounded', () => {
+  assert.equal(discovery.schema, 'spatial-review-discovery/v1');
+  assert.equal(discovery.websiteUrl, '../');
+  assert.equal(discovery.liveCapture, '../?spatial-review-capture=1&shot=0&q=high&adapt=0&post=0&shadow=0&dpr=1');
+  assert.match(integration, /discoveryUrl: '\.well-known\/spatial-review\.json'/);
+  assert.match(integration, /maxGeometryBytes: 32 \* 1024 \* 1024/);
+  assert.match(integration, /maxConcurrentAssetRequests: 2/);
+  assert.match(integration, /maxInFlightBytes: 48 \* 1024 \* 1024/);
+  assert.match(integration, /setSourceStatus\?\./);
 });

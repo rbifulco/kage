@@ -9,7 +9,15 @@ window.THREE = THREE;
 const registry = new SceneAssetRegistry(__KAGE_BUILD_ID__);
 registerReviewAssemblies(registry);
 // Explicit approval recorded in SPATIAL_REVIEW.md; no other production origins.
-const bridgeOptions = { allowOfficialEditor: true, allowedOrigins: [] };
+const authorizationOptions = { allowOfficialEditor: true, allowedOrigins: [] };
+const streamingBridgeOptions = {
+  ...authorizationOptions,
+  maxGeometryBytes: 32 * 1024 * 1024,
+  maxConcurrentAssetRequests: 2,
+  maxInFlightBytes: 48 * 1024 * 1024,
+  maxQueuedAssetRequests: 24,
+  progressIntervalMs: 120,
+};
 const websiteUrl = new URL('./', location.href).href;
 // Keep review geometry at authored high detail, but omit presentation-only GPU
 // work. The editor may keep several capture frames alive at once, so each one
@@ -19,11 +27,24 @@ const capture = new URLSearchParams(location.search).get('spatial-review-capture
 let stopDiscovery, stopCapture, ready = false;
 
 function startBridges() {
-  stopDiscovery ??= attachSpatialReviewDiscoveryBridge({ name: 'Kage — Kyoto night walk', websiteUrl, liveCapture }, bridgeOptions);
-  if (capture && ready) stopCapture ??= attachSceneAssetRegistryBridge(registry, bridgeOptions);
+  stopDiscovery ??= attachSpatialReviewDiscoveryBridge({
+    name: 'Kage — Kyoto night walk',
+    websiteUrl,
+    discoveryUrl: '.well-known/spatial-review.json',
+    liveCapture,
+  }, authorizationOptions);
+  if (capture && ready) stopCapture ??= attachSceneAssetRegistryBridge(registry, streamingBridgeOptions);
 }
 function stopBridges() {
   stopDiscovery?.(); stopCapture?.(); stopDiscovery = stopCapture = undefined;
+}
+function markCatalogReady() {
+  registry.setSourceStatus?.({
+    phase: 'catalog-ready',
+    expectedActors: registry.size,
+    readyActors: registry.size,
+    message: 'Kage roots are ready; overview and detail geometry remain request-driven.',
+  });
 }
 
 window.KageReview = {
@@ -46,12 +67,16 @@ window.KageReview = {
     registry.registerNavigationSequence(buildScrollJourney(CAM, anchors, tension));
     registry.registerNavigationSequence(buildIntroJourney(CAM, intro));
     for (const journey of buildCardJourneys(cards, push)) registry.registerNavigationSequence(journey);
+    markCatalogReady();
     ready = true;
     startBridges();
     document.documentElement.dataset.spatialReviewReady = registry.buildId;
   },
   refreshNavigation(CAM, anchors, tension) {
-    if (ready) registry.registerNavigationSequence(buildScrollJourney(CAM, anchors, tension));
+    if (ready) {
+      registry.registerNavigationSequence(buildScrollJourney(CAM, anchors, tension));
+      markCatalogReady();
+    }
   },
 };
 startBridges();

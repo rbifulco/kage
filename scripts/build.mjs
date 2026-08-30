@@ -2,7 +2,7 @@ import { build } from 'esbuild';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 
-const inputs = ['index.html', 'src/spatial-review.js', 'src/review-structure.js', 'src/navigation-review.js', 'package.json', 'package-lock.json'];
+const inputs = ['index.html', '.well-known/spatial-review.json', 'src/spatial-review.js', 'src/review-structure.js', 'src/navigation-review.js', 'package.json', 'package-lock.json'];
 const hash = createHash('sha256');
 for (const path of inputs) hash.update(await readFile(path));
 const manifest = JSON.parse(await readFile('package.json', 'utf8'));
