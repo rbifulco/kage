@@ -16,8 +16,8 @@ The SDK origin checks protect review data even though Pages permits embedding.
 
 ## Integration inventory and plan
 
-Refinement: SDK upgraded from 0.4.0 to 0.5.0 (latest npm release checked
-2026-08-30), retaining Three.js 0.160.1 within the supported `>=0.160.0 <1`
+Refinement: SDK upgraded from 0.4.0 to 0.6.0 (latest npm release checked
+2026-08-31), retaining Three.js 0.160.1 within the supported `>=0.160.0 <1`
 peer range. The original static site remains on one shared runtime and a
 checked-in reproducible browser bundle. The approved origins, exposed data
 classes, capture route, and framing scope are unchanged.
@@ -125,9 +125,13 @@ used as regression references.
   the capture-profile check locks high-detail geometry with post-processing,
   shadows, and adaptive DPR disabled; the streaming check locks project-relative
   discovery, catalog status, and byte/concurrency/in-flight limits.
-- `npm run build` produces `kage-sr-0.5.0-92f92f4214ca3e80`; `git diff --check`
-  passes. The checked-in bundle resolves SDK/protocol 0.5.0 and Three.js 0.160.1.
-- The browser harness across localhost ports 4183/4184 passes cross-origin
+- `npm run build` on 2026-08-31 produces
+  `kage-sr-0.6.0-fc6183d1a867591d`; the checked-in bundle resolves SDK/protocol
+  0.6.0 and Three.js 0.160.1.
+- The 2026-08-30 SDK 0.5.0 build produced
+  `kage-sr-0.5.0-92f92f4214ca3e80`; its checked-in bundle resolved SDK/protocol
+  0.5.0 and Three.js 0.160.1.
+- The 2026-08-30 browser harness across localhost ports 4183/4184 passed cross-origin
   discovery, capture readiness, three advertised and negotiated assemblies,
   37 unique actors, 32 detailed asset families, six journeys, flat fallback,
   five representative live texture transfers, and repeated catalog stability.
@@ -157,8 +161,8 @@ used as regression references.
   component reference. The live harness loaded every detailed family and the
   representative textures.
 
-The production GitHub Pages URL still serves the previously published build;
-deploying this optimized local 0.5.0 bundle was not part of this update. Rotation, scaling,
+The `spatial-review-pages` branch is the production GitHub Pages source; pushing
+the checked-in 0.6.0 bundle publishes it. Rotation, scaling,
 reparenting, independent child moves, new surface comments, exhaustive journey
 scrubbing, mobile rendering, and a source-change refresh remain unverified. The
 complete manual review-loop checklist is therefore not claimed as fully passed.

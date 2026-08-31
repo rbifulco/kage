@@ -15,7 +15,7 @@ An interactive five-chapter night walk through a Kyoto mountain temple, rendered
 
 ## How it is made
 
-Kage is a static site. `index.html` contains the document structure, CSS, procedural scene construction, scroll choreography, and interaction logic. This fork adds Spatial Review 0.5.0 and a shared Three.js r160 runtime, bundled into a checked-in static asset. The original project used Three.js r149.
+Kage is a static site. `index.html` contains the document structure, CSS, procedural scene construction, scroll choreography, and interaction logic. This fork adds Spatial Review 0.6.0 and a shared Three.js r160 runtime, bundled into a checked-in static asset. The original project used Three.js r149.
 
 The temple, torii, lanterns, moon, terrain, rain, leaves, fog, and post-processing are constructed at runtime. Optimized WebP scene plates and foreground cutouts sit in normal HTML layers, giving the page its collage-like depth while keeping the camera path and lighting live.
 
