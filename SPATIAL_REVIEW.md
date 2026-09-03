@@ -6,8 +6,10 @@ On 2026-08-28 the user explicitly approved `https://spatial-review.alterno.dev`
 to receive deliberately registered scene, asset, material, source-reference and
 texture data and embed discovery/capture pages. Both bridges use
 `allowOfficialEditor: true`, with no additional production origins. Set this
-one configuration to `false` to revoke official-editor access. Same-origin and
-mutual localhost access are SDK defaults. No arbitrary DOM, application state,
+one configuration to `false` to revoke official-editor access. Same-origin access
+is an SDK default; explicit `allowLoopbackPeers: true` preserves the existing
+mutual localhost workflow under SDK 0.7.0. Origin-policy advertisement remains
+disabled. No arbitrary DOM, application state,
 credentials or unregistered objects are exposed by the bridges.
 
 GitHub Pages does not provide per-route custom HTTP headers. This repository
@@ -16,8 +18,8 @@ The SDK origin checks protect review data even though Pages permits embedding.
 
 ## Integration inventory and plan
 
-Refinement: SDK upgraded from 0.4.0 to 0.6.0 (latest npm release checked
-2026-08-31), retaining Three.js 0.160.1 within the supported `>=0.160.0 <1`
+Refinement: SDK upgraded to the published 0.7.0 release on 2026-09-03,
+retaining Three.js 0.160.1 within the supported `>=0.160.0 <1`
 peer range. The original static site remains on one shared runtime and a
 checked-in reproducible browser bundle. The approved origins, exposed data
 classes, capture route, and framing scope are unchanged.
@@ -162,7 +164,7 @@ used as regression references.
   representative textures.
 
 The `spatial-review-pages` branch is the production GitHub Pages source; pushing
-the checked-in 0.6.0 bundle publishes it. Rotation, scaling,
+the checked-in 0.7.0 bundle publishes it. Rotation, scaling,
 reparenting, independent child moves, new surface comments, exhaustive journey
 scrubbing, mobile rendering, and a source-change refresh remain unverified. The
 complete manual review-loop checklist is therefore not claimed as fully passed.

@@ -9,7 +9,7 @@ window.THREE = THREE;
 const registry = new SceneAssetRegistry(__KAGE_BUILD_ID__);
 registerReviewAssemblies(registry);
 // Explicit approval recorded in SPATIAL_REVIEW.md; no other production origins.
-const authorizationOptions = { allowOfficialEditor: true, allowedOrigins: [] };
+const authorizationOptions = { allowOfficialEditor: true, allowLoopbackPeers: true, allowedOrigins: [] };
 const streamingBridgeOptions = {
   ...authorizationOptions,
   maxGeometryBytes: 32 * 1024 * 1024,

@@ -7,6 +7,7 @@ import {
   SceneAssetRegistry,
   SPATIAL_REVIEW_ASSEMBLIES_CAPABILITY,
   SPATIAL_REVIEW_CATALOG,
+  SPATIAL_REVIEW_CONNECTION_REJECTED,
   SPATIAL_REVIEW_DISCOVERY_REQUEST,
   SPATIAL_REVIEW_REQUEST,
   SPATIAL_REVIEW_RESOURCE_REQUEST,
@@ -104,7 +105,7 @@ test('both bridges enforce origin and parent-window checks, and detach cleanly',
     const registry = new SceneAssetRegistry('test');
     registerReviewAssemblies(registry);
     registry.register({ actorId: 'gate', assetId: 'gate', name: 'Gate', sourceRef: 'index.html#buildTorii', category: 'Architecture', parentAssemblyId: REVIEW_OWNER_IDS.courtyard, root: new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshStandardMaterial()) });
-    const options = { allowOfficialEditor: true, allowedOrigins: [] };
+    const options = { allowOfficialEditor: true, allowLoopbackPeers: true, allowedOrigins: [] };
     const detach = [attachSpatialReviewDiscoveryBridge({ name: 'Kage', websiteUrl: 'https://rbifulco.github.io/kage/', liveCapture: './?spatial-review-capture=1' }, options), attachSceneAssetRegistryBridge(registry, options)];
     messages.length = 0; // SDK's unprotected ready notification is not a catalog.
     const send = (origin, source = parent, suffix = '', data = {}) => {
@@ -114,7 +115,13 @@ test('both bridges enforce origin and parent-window checks, and detach cleanly',
     send('https://evil.example'); send('https://spatial-review.alterno.dev.evil.example'); send('http://localhost:4184');
     send('https://spatial-review.alterno.dev', { postMessage: parent.postMessage });
     await new Promise(resolve => setTimeout(resolve, 10));
-    assert.equal(messages.length, 0);
+    assert.equal(messages.length, 3);
+    for (const [message] of messages) {
+      assert.equal(message.type, SPATIAL_REVIEW_CONNECTION_REJECTED);
+      assert.equal(message.code, 'editor-origin-not-authorized');
+      assert.equal(message.payload, undefined);
+    }
+    messages.length = 0;
     send('https://spatial-review.alterno.dev');
     await new Promise(resolve => setTimeout(resolve, 10));
     assert.equal(messages.length, 3);
@@ -131,6 +138,20 @@ test('both bridges enforce origin and parent-window checks, and detach cleanly',
     detach.forEach(f => f()); assert.equal(listeners.size, 0);
     const revoke = attachSpatialReviewDiscoveryBridge({ name: 'Kage', liveCapture: './' }, { allowOfficialEditor: false });
     messages.length = 0; send('https://spatial-review.alterno.dev'); assert.equal(messages.length, 0); revoke();
+    global.window.location = new URL('http://127.0.0.1:4183/');
+    const localDetach = [
+      attachSpatialReviewDiscoveryBridge({ name: 'Kage', liveCapture: './?spatial-review-capture=1' }, options),
+      attachSceneAssetRegistryBridge(registry, options),
+    ];
+    try {
+      messages.length = 0;
+      send('http://localhost:4184');
+      await new Promise(resolve => setTimeout(resolve, 10));
+      assert.equal(messages.length, 3);
+      assert.ok(messages.some(([message]) => message.type === SPATIAL_REVIEW_CATALOG));
+      assert.ok(messages.every(([, origin]) => origin === 'http://localhost:4184'));
+      assert.equal(messages.find(([message]) => message.discovery)[0].discovery.capabilities?.liveCapture?.editorOriginPolicy, undefined);
+    } finally { localDetach.forEach(stop => stop()); }
   } finally { global.window = previous; }
 });
 
@@ -154,6 +175,7 @@ test('project-relative discovery and streamed geometry are explicitly bounded', 
   assert.match(integration, /discoveryUrl: '\.well-known\/spatial-review\.json'/);
   assert.match(integration, /maxGeometryBytes: 32 \* 1024 \* 1024/);
   assert.match(integration, /maxConcurrentAssetRequests: 2/);
+  assert.match(integration, /allowLoopbackPeers: true/);
   assert.match(integration, /maxInFlightBytes: 48 \* 1024 \* 1024/);
   assert.match(integration, /setSourceStatus\?\./);
 });
