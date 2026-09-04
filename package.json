@@ -1,0 +1,1 @@
+{"name":"kage-spatial-review-fresh","private":true,"type":"module","scripts":{"build":"node scripts/build.mjs","test":"node --test tests/*.test.mjs","dev":"node scripts/serve.mjs"},"dependencies":{"@alterno-dev/spatial-review":"0.7.0","three":"0.160.1"},"devDependencies":{"esbuild":"0.28.2","playwright":"1.58.2"}}
