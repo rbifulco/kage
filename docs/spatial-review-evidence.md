@@ -38,4 +38,10 @@ A disposable asset observation exported as `asset-feedback-3d/v2` with stable as
 
 Two assembly records and their actor ownership are verified at the producer protocol level; editor assembly editing was not exercised. Nested lantern glow cards can remain visibly rectangular in the reduced Scene representation. Asset appearance and the ordinary site remain the relevant checks for those effects.
 
-Production deployment and official-editor smoke results are recorded below once publication completes.
+## Publication
+
+The existing Pages destination `https://rbifulco.github.io/kage/` now builds from `spatial-review-fresh-20260904` at `/`. GitHub Pages reported successful deployment of implementation commit `144f23fb3df05cc25f0524f8f83338c06ebf34a9`. The prior branch and deployment revision remain intact; rollback is a Pages source change back to `spatial-review-pages`, with no history rewrite.
+
+Public `index.html`, `.well-known/spatial-review.json`, `spatial-review.html` and `review/capture.js` return HTTP 200, appropriate MIME types, CORS `*`, and byte-for-byte match the validated local artifacts. Capture build identity is `kage-ab4a26941c64813ce666`; capture bundle SHA-256 is `23100bf7a50064fb609d71b8632c412073a7f2524e70227d41dfdf496387e76d`.
+
+The actual official editor at `https://spatial-review.alterno.dev/review?site=https%3A%2F%2Frbifulco.github.io%2Fkage%2F` opened from the ordinary site URL, discovered the dedicated capture route, and completed Scene, Asset and Experience checks. The production embedded capture had all 40 actors and identical six anchors. Textured torii Asset reported 3/3 textures ready; journey had six stops, five transitions and working play/pause. The actual disposable feedback export again contained `kage-torii` and `index.html#buildTorii`; reloading preserved the unresolved observation. All three production screenshots were visually inspected. These checks ran in a disposable browser context, which was closed afterward. Raw screenshots, compact feedback and machine-readable results are retained in gitignored `.evidence/production-*` files. No production source change followed this validation; the final follow-up commit records this evidence only.
