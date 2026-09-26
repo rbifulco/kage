@@ -2,7 +2,7 @@ import {chromium} from 'playwright';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
 const base=process.argv[2]||'http://127.0.0.1:4411',site=process.argv[3]||'http://127.0.0.1:4311/';
-const tag=base.includes('4411')?'local':'production';
+const tag=process.argv[4]||(base.includes('4411')?'local':'production');
 const browser=await chromium.launch({channel:'chrome',headless:true});
 const context=await browser.newContext({viewport:{width:1600,height:1000},deviceScaleFactor:1,acceptDownloads:true});
 const page=await context.newPage();const errors=[];

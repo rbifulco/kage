@@ -4,6 +4,7 @@ import {build} from 'esbuild';
 const original=await fs.readFile('index.html','utf8');
 let html=original;
 function once(from,to){if(!html.includes(from)||html.indexOf(from)!==html.lastIndexOf(from))throw Error('Source hook changed: '+from.slice(0,100));html=html.replace(from,to);}
+function editOnce(source,from,to){if(!source.includes(from)||source.indexOf(from)!==source.lastIndexOf(from))throw Error('Source hook changed: '+from.slice(0,100));return source.replace(from,to);}
 function factory(name,edit){
  const match=html.match(new RegExp('^function '+name+'\\(', 'm'));if(!match)throw Error(name);const start=match.index;
  const open=html.indexOf('{',start);let depth=1,i=open+1,quote='',comment='';
@@ -43,7 +44,15 @@ once('<script src="secret-pathways-assets/three.min.js"></script>','<script src=
 
 // Capture alone gets deterministic random/time and no ordinary-page event machinery.
 once("'use strict';", "'use strict';\nMath.random = mulberry32(20260904);\nconst {reviewRecord,reviewBakeMaple,reviewBakeForeground} = window.__kageCapture;");
-factory('boot',b=>b.replace('wireReveals(); wireForegroundStages(); wireNav(); wireHeroExit(); wireFocus(); wireCursor();','').replace('const j = JOBS[i];','const j = JOBS[i], jobStart = performance.now();').replace('i++;',"(window.__kageCapture.jobTimings ||= []).push({name:j[0],ms:performance.now()-jobStart});i++;"));
+factory('boot',b=>{
+ b=editOnce(b,'wireReveals(); wireForegroundStages(); wireNav(); wireHeroExit(); wireFocus(); wireCursor();','');
+ b=editOnce(b,'const j = JOBS[i];','const j = JOBS[i], jobStart = performance.now();');
+ b=editOnce(b,'i++;',"(window.__kageCapture.jobTimings ||= []).push({name:j[0],ms:performance.now()-jobStart});i++;");
+ b=editOnce(b,'if (i <= 1) return fallback(err);','return fallback(err);');
+ return editOnce(b,'(r && r.then) ? r.then(done, done) : done();',
+  '(r && r.then) ? r.then(done, err => { console.error(`[kage] job "${j[0]}" failed`, err); fallback(err); }) : done();');
+});
+factory('fallback',b=>"window.__kageReview={ready:false,error:String(err&&err.message||err)};\n"+b);
 once('initPost(); buildCards(); buildCardCloth();', '/* Capture does not allocate presentation-only post/card resources. */');
 factory('start',()=>`
  resize(); RIG.intro=1; RIG.smooth=RIG.prog=0; WORD.reveal=1.2; clock=0; fadeIn=1;

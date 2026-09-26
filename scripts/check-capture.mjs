@@ -1,10 +1,11 @@
 import {chromium} from 'playwright';
 import fs from 'node:fs/promises';
 const browser=await chromium.launch({channel:'chrome',headless:true});
+const base=process.argv[2]||'http://127.0.0.1:4311';
 const page=await browser.newPage({viewport:{width:1600,height:900},deviceScaleFactor:1,reducedMotion:'reduce'});
 const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text().slice(0,400))});
 try{
- await page.goto('http://127.0.0.1:4311/spatial-review.html?shot=0&q=high&adapt=0&dpr=1',{waitUntil:'load'});
+ await page.goto(base+'/spatial-review.html?shot=0&q=high&adapt=0&dpr=1',{waitUntil:'load'});
  await page.waitForFunction(()=>window.__kageReview?.ready,{timeout:90000});
  const result=await page.evaluate(async()=>{
   const r=__kageReview.registry,t=performance.now(),index=r.toReviewIndex('review',false,true,true,true),catalogMs=performance.now()-t;

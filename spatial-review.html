@@ -4775,14 +4775,15 @@ function boot() {
     try { r = j[1](); }
     catch (err) {
       console.error('[kage] job "' + j[0] + '" failed', err);
-      if (i <= 1) return fallback(err);          /* no renderer, no scene */
+      return fallback(err);          /* no renderer, no scene */
     }
-    (r && r.then) ? r.then(done, done) : done();
+    (r && r.then) ? r.then(done, err => { console.error(`[kage] job "${j[0]}" failed`, err); fallback(err); }) : done();
   };
   setTimeout(step, 60);
 }
 
-function fallback(err) {
+function fallback(err) {window.__kageReview={ready:false,error:String(err&&err.message||err)};
+
   document.documentElement.classList.add('no-webgl');
   document.body.classList.add('no-webgl');
   document.body.classList.remove('is-locked');

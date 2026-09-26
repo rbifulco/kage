@@ -49,8 +49,21 @@ export function navigation(CAM,anchors){
  };
  return {id:'kage-night-walk',name:'Kyoto temple · six chapter walk',sourceRef:'index.html#CAM',stops,segments:stops.slice(0,-1).map((s,i)=>({id:`${keys[i]}--${keys[i+1]}`,fromStopId:s.id,toStopId:keys[i+1],weight:Math.max(1,anchors[i+1]-anchors[i]),lensStart:0,camera:curve(i,'p'),aim:{kind:'curve',curve:curve(i,'t')},sourceRef:'index.html#buildRig'}))};
 }
-async function install(runtime){
+function install(runtime){
  const started=performance.now();
+ // The ordinary page can continue after a late construction error, but a
+ // review snapshot must never claim that a partial catalog is complete.
+ const actorIds=records.map(record=>record.actorId);
+ const assetIds=new Set(records.map(record=>record.assetId));
+ if(records.length!==40||new Set(actorIds).size!==40||assetIds.size!==35||
+    !['kage-torii','kage-sanmon','kage-wordmark'].every(id=>actorIds.includes(id))||
+    records.some(({root})=>!root?.isObject3D||!runtime.scene.getObjectById(root.id))||
+    runtime.CAM.length!==6||runtime.anchors.length!==6||
+    runtime.anchors.some((value,index)=>!Number.isFinite(value)||(index>0&&value<=runtime.anchors[index-1]))){
+  const error=new Error('Kage review capture is incomplete; scene jobs or source hooks changed.');
+  window.__kageReview={ready:false,error:error.message};
+  throw error;
+ }
  const registry=new SceneAssetRegistry(__BUILD_ID__);
  for(const [id,name,sourceRef] of [['approach','Mountain approach','index.html#buildShell'],['sanctuary','Sanmon sanctuary','index.html#buildTemple']])registry.registerAssembly({assemblyId:`kage-${id}`,name,sourceRef,localTransform:{position:[0,0,0],rotation:[0,0,0],scale:[1,1,1]}});
  const materials=new Set(),textures=new Set(),alphaMaps=new Map();

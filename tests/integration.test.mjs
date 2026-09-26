@@ -55,3 +55,19 @@ test('navigation conversion preserves authoritative Catmull–Rom camera and aim
  const updated=navigation(replacement,[0,100,250,350,500,600]);
  assert.equal(updated.stops[1].id,nav.stops[1].id);assert.equal(updated.stops[1].camera[0],CAM[1].p[0]+1);
 });
+test('capture refuses incomplete or duplicate registrations before bridge attachment',async()=>{
+ globalThis.window={};await import('../src/capture.js?readiness-test');
+ const THREE=await import('three');
+ const {reviewRecord,install}=window.__kageCapture;
+ const scene=new THREE.Scene(),runtime={scene,CAM:Array.from({length:6},()=>({})),anchors:[0,1,2,3,4,5]};
+ assert.throws(()=>install(runtime),/capture is incomplete/);
+ assert.equal(window.__kageReview.ready,false);
+ const ids=['torii','sanmon','wordmark',...Array.from({length:37},(_,i)=>`actor-${i}`)];
+ for(let i=0;i<ids.length;i++){
+  const root=new THREE.Group();scene.add(root);
+  reviewRecord(root,i===39?'torii':ids[i],'Test actor','buildTorii','approach',`asset-${i%35}`);
+ }
+ assert.equal(window.__kageCapture.install,install);
+ assert.throws(()=>install(runtime),/capture is incomplete/);
+ assert.equal(window.__kageReview.ready,false);
+});
