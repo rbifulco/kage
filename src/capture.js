@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {scheduleCaptureJob} from './capture-scheduler.js';
 import {SceneAssetRegistry, attachSceneAssetRegistryBridge, createSpatialReviewEditorAuthorization} from '@alterno-dev/spatial-review';
 window.THREE=THREE;
 const records=[];
@@ -98,4 +99,4 @@ function install(runtime){
  addEventListener('pagehide',dispose,{once:true});
  window.__kageReview={registry,records,buildId:__BUILD_ID__,ready:true,setupMs:performance.now()-started,dispose,sourceNotes};
 }
-window.__kageCapture={reviewRecord,reviewBakeMaple,reviewBakeForeground,install};
+window.__kageCapture={reviewRecord,reviewBakeMaple,reviewBakeForeground,install,scheduleCaptureJob};

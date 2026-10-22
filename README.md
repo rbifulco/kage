@@ -1,5 +1,29 @@
 # Kage
 
+## Spatial Review startup measurement — 2026-10-22
+
+Capture construction now schedules successive jobs with `scheduler.postTask`,
+or a MessageChannel fallback that closes its ports. This avoids chained timer
+delays in the editor's hidden cross-site iframe, while preserving job order,
+font readiness, complete-capture validation, geometry and the ordinary website.
+
+Local comparison used the same production editor on `127.0.0.1:5198`, with
+unchanged capture commit `337ca34` on `localhost:5210` and the updated capture on
+`localhost:5211`. Both use the existing loopback authorization. Times cover
+navigation/reload until visible `main[aria-busy="false"]`, including editor
+preparation. These are three repeated desktop in-app-browser runs per version,
+with normal caching, not cold-network or deployed-site benchmarks.
+
+| Capture | Runs (seconds) | Median |
+| --- | --- | --- |
+| Before | 14.207, 13.994, 12.979 | 13.994 |
+| After | 3.246, 3.371, 3.248 | 3.248 |
+
+The observed median reduction is 76.8% (4.3 times faster). The completed scene
+shows 40/40 asset meshes. Build and all nine integration/scheduler tests pass.
+Deploy the updated capture files to apply this improvement to hosted Kage;
+this measurement does not claim a production-network latency guarantee.
+
 An interactive five-chapter night walk through a Kyoto mountain temple, rendered live in Three.js and layered with cinematic generated imagery.
 
 [**View the live project**](https://mengto.github.io/kage/) · [**View the source**](https://github.com/MengTo/kage) · [**Read the build prompt**](PROMPT.md)
