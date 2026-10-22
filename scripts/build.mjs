@@ -45,6 +45,9 @@ once('<script src="secret-pathways-assets/three.min.js"></script>','<script src=
 // Capture alone gets deterministic random/time and no ordinary-page event machinery.
 once("'use strict';", "'use strict';\nMath.random = mulberry32(20260904);\nconst {reviewRecord,reviewBakeMaple,reviewBakeForeground} = window.__kageCapture;");
 factory('boot',b=>{
+ b=editOnce(b,'if (i < JOBS.length) setTimeout(step, 16); else setTimeout(start, 220);',
+  'window.__kageCapture.scheduleCaptureJob(i < JOBS.length ? step : start);');
+ b=editOnce(b,'setTimeout(step, 60);','window.__kageCapture.scheduleCaptureJob(step);');
  b=editOnce(b,'wireReveals(); wireForegroundStages(); wireNav(); wireHeroExit(); wireFocus(); wireCursor();','');
  b=editOnce(b,'const j = JOBS[i];','const j = JOBS[i], jobStart = performance.now();');
  b=editOnce(b,'i++;',"(window.__kageCapture.jobTimings ||= []).push({name:j[0],ms:performance.now()-jobStart});i++;");
@@ -61,7 +64,7 @@ factory('start',()=>`
  window.__kage = {RIG,WORLD,WORD,CAM,renderer,scene,camera,anchors:()=>anchors};
  window.__kageCapture.install({scene,camera,CAM,curveP,curveT,anchors:anchors.slice(),renderer});
 `);
-const inputs=[original,await fs.readFile('src/capture.js','utf8'),await fs.readFile('scripts/build.mjs','utf8'),await fs.readFile('package-lock.json','utf8')];
+const inputs=[original,await fs.readFile('src/capture.js','utf8'),await fs.readFile('src/capture-scheduler.js','utf8'),await fs.readFile('scripts/build.mjs','utf8'),await fs.readFile('package-lock.json','utf8')];
 const revision=createHash('sha256').update(inputs.join('\n')).digest('hex').slice(0,20);
 await fs.mkdir('review',{recursive:true});
 await build({entryPoints:['src/capture.js'],outfile:'review/capture.js',bundle:true,format:'iife',minify:true,define:{__BUILD_ID__:JSON.stringify('kage-'+revision)}});
