@@ -1,0 +1,59 @@
+name: Publish Kage to GitHub Pages
+
+on:
+  push:
+    branches: [spatial-review-fresh-20260904]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+        with:
+          enablement: false
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - run: npm test
+      - name: Stage the static website
+        run: |
+          mkdir -p "$RUNNER_TEMP/kage-pages"
+          cp index.html spatial-review.html .nojekyll "$RUNNER_TEMP/kage-pages/"
+          cp -R .well-known assets review secret-pathways-assets "$RUNNER_TEMP/kage-pages/"
+          test -f "$RUNNER_TEMP/kage-pages/.well-known/spatial-review.json"
+          test -f "$RUNNER_TEMP/kage-pages/review/capture.js"
+          test ! -e "$RUNNER_TEMP/kage-pages/node_modules"
+          test ! -e "$RUNNER_TEMP/kage-pages/.git"
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: ${{ runner.temp }}/kage-pages
+          include-hidden-files: true
+
+  deploy:
+    if: github.ref == 'refs/heads/spatial-review-fresh-20260904'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
