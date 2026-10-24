@@ -28,7 +28,7 @@ test('ordinary route carries no review work; capture uses compatible shared Thre
  assert(!capture.slice(capture.lastIndexOf('function start()')).includes('queue();'));
  assert(!capture.includes('initPost(); buildCards(); buildCardCloth();'));
  const lock=JSON.parse(fs.readFileSync('package-lock.json','utf8'));
- assert.equal(lock.packages['node_modules/@alterno-dev/spatial-review'].version,'0.8.0');
+ assert.equal(lock.packages['node_modules/@alterno-dev/spatial-review'].version,'0.9.0');
  assert.equal(lock.packages['node_modules/three'].version,'0.160.1');
  assert(lock.packages['node_modules/@alterno-dev/spatial-review'].resolved.startsWith('https://registry.npmjs.org/'));
 });

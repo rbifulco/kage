@@ -1,5 +1,36 @@
 # Fresh Kage Spatial Review integration
 
+## Current update: SDK 0.9.0 (2026-10-24)
+
+The user authorized upgrading and publishing this existing integration while preserving its review boundaries, feedback identities, approved editor origins and ordinary website. The active source/deployment branch is `spatial-review-fresh-20260904`; `.github/workflows/pages.yml` runs npm installation, build, tests and the existing GitHub Pages deployment. No origin, framing, registration, scene factory or ordinary-page change is introduced.
+
+- npm pins SDK `0.9.0` and resolves protocol `0.9.0`; capture Three remains `0.160.1`, ordinary Three r149. There are no directly declared validator or CLI packages.
+- `scripts/build.mjs` already hashes `package-lock.json` with capture/source inputs. Rebuilding advances the capture to `kage-7b7a589af7bc9d1a58c2` and regenerates tracked `review/capture.js`. No prepared package or separate static scene/asset export is advertised.
+- All 40 actors, 35 asset families, two assemblies and the six-stop journey retain their IDs. The journey contains five segments and 40 total camera/aim control-point occurrences, below current catalog budgets. The six lantern placements still share one canonical asset.
+- Kage has no authored geometry color attributes in the registered roots. No material is opted into vertex colors. Source maps and UVs remain intact; SDK 0.9.0 now retains them in both Scene and Asset. Capture-only zero-time maple sway and foreground alpha-feather baking remain as documented below.
+- The existing initially hidden cinematic planes remain hidden in Scene/Experience to preserve the established representation boundary. Historical statements below about old SDK Scene UV/map omissions describe the earlier decision, not a limitation of 0.9.0.
+
+### Representative appearance and resource evidence
+
+Subject: `kage-torii`, source `index.html#buildTorii`, 26 nodes, 20 unique serialized geometries, three materials. Scene now contains the same 3,324 UV float values and three shared texture resource IDs as Asset. No source material, node or geometry ID changes between the 0.8.0 and 0.9.0 captures.
+
+| Resource | Measured result |
+| --- | ---: |
+| Scene numeric buffers (32-bit positions, UVs, indices) | 52,680 bytes |
+| Asset numeric buffers (also supplied normals) | 72,624 bytes |
+| UV contribution, already included above | 13,296 bytes |
+| PNG color / normal / roughness maps | 360,227 / 217,025 / 132,831 bytes |
+| Total encoded texture transfer | 710,083 bytes |
+| Three 512 × 512 RGBA decoded images | 3,145,728 bytes (3 MiB) |
+| Illustrative RGBA8 GPU allocation with complete mip chains | approximately 4 MiB; estimate, not measured allocation |
+| Catalog JSON encoding | 47,569 bytes; not the editor structured-clone estimate |
+
+These are costs for one representative asset, not full-scene memory estimates. Numeric buffers and image memory are separate; texture resources shared across Scene/Asset are counted once. Local software-browser capture readiness was approximately 8.8 s before and 8.5 s after in single samples on a shared host, with torii serialization 7.6/6.2 ms. These samples establish successful construction, not a performance benchmark. Source procedural texture generation remains the dominant startup work.
+
+Existing baseline and upgraded `npm run build` / `npm test` pass (9 tests); `git diff --check` passes. Tests compare the ordinary HTML and original asset bytes against the original source commit. The ordinary `index.html` SHA-256 remains `c8e06b90397ac246baf0ab6f32f5f6b570acc6fe03c7009f711b579fb72d9f49`. Review-only work still starts only on the dedicated capture route, so no new ordinary-page performance screen is triggered. Browser evidence and deployment verification are recorded in `docs/spatial-review-evidence.md`.
+
+Remaining appearance approximations: editor lighting/fog, tone mapping, HDR/bloom, normal-map intensity, alpha-test edges/additive blending, animated atmosphere and DOM overlays. SDK 0.9.0 preserves authored transparency but does not reproduce custom shader programs. The pre-existing shared capture alpha-coverage maps are retained. Final cinematic appearance remains an ordinary-page check.
+
 ## Baseline and authorization
 
 Fresh branch `spatial-review-fresh-20260904` starts at clean original `4399487d2fb42bce39c7b032fbbb50d230bf4f0b`, fork of MengTo/kage. No prior integration code is reused. Existing `spatial-review-pages` at `7fd91de` and its checkout are preserved as rollback. Original repository contains no package manager, build, or tests; its shipped HTML/assets are its build. `index.html` and original assets remain byte-identical.

@@ -1,5 +1,18 @@
 # Fresh Kage integration evidence
 
+## SDK 0.9.0 migration — 2026-10-24
+
+The active branch is `spatial-review-fresh-20260904`. Updated the npm dependency and lockfile, regenerated `review/capture.js`, and updated the existing pinned-version test. SDK and resolved protocol are 0.9.0; capture Three remains 0.160.1. New capture build ID: `kage-7b7a589af7bc9d1a58c2`. The identity includes the lockfile, so the appearance upgrade cannot reuse the earlier capture identity.
+
+Baseline and upgraded builds and all nine existing tests pass. The unchanged-original-assets test confirms ordinary `index.html` and all original assets byte for byte. Local Chrome captured both old and new registries without page errors; all 40 actor IDs and the representative torii's node, geometry and material IDs match. The 35 canonical assets, two assemblies, six-stop/five-segment journey and 40 camera/aim points are unchanged. No prepared package or static scene/asset JSON exists to migrate separately.
+
+Local capture assertions verify torii UVs in both Scene and Asset, all three texture maps in both profiles, one shared resource ID per map across views, successful PNG transfer and 512 × 512 decoding. Scene numeric buffers are 52,680 bytes and Asset buffers 72,624 bytes, excluding textures. Texture transfer totals 710,083 bytes; decoded RGBA images total 3 MiB, with approximately 4 MiB RGBA8 GPU storage if full mip chains are allocated. The GPU figure is an estimate, not a measured total. Full resource and appearance decisions are in the integration plan.
+
+The ordinary hero rendered in software Chrome. The existing animated-page interaction/screenshot script hit actionability or screenshot timeouts on this shared software-rendering host; this is recorded as incomplete browser evidence, not a passing performance check. Source isolation and exact original-asset equality independently pass. The cloud browser could not create a WebGL context. The temporary local Chrome capture path did work; the hosted editor could not discover the local loopback server in that test context. Published-URL editor verification follows deployment through the existing workflow and is reported separately.
+
+Old evidence below records earlier SDK behavior. In 0.9.0 Scene retains UVs and supported maps; the former SDK omission no longer applies. Existing initially hidden cinematic planes remain hidden to preserve review boundaries. Lighting, fog, postprocessing, custom shader effects, normal strength and alpha-test approximations remain as documented.
+
+
 ## Source and installation
 
 - Clean starting revision: `4399487d2fb42bce39c7b032fbbb50d230bf4f0b`, verified in upstream MengTo/kage and fork rbifulco/kage.
