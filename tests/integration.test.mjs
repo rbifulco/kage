@@ -40,6 +40,10 @@ test('navigation conversion preserves authoritative Catmull–Rom camera and aim
  const original=fs.readFileSync('index.html','utf8');
  const CAM=vm.runInNewContext(original.match(/const CAM = (\[[\s\S]*?\n\]);/)[1]);
  const nav=navigation(CAM,[0,100,250,350,500,600]);
+ assert(Math.abs(nav.segments.reduce((sum,segment)=>sum+segment.weight,0)-16)<1e-10);
+ assert(Math.abs(nav.segments[1].weight/nav.segments[0].weight-1.5)<1e-10);
+ const scaled=navigation(CAM,[0,1000,2500,3500,5000,6000]);
+ nav.segments.forEach((segment,i)=>assert(Math.abs(segment.weight-scaled.segments[i].weight)<1e-10));
  for(const slot of ['p','t']){
   const rail=new legacy.THREE.CatmullRomCurve3(CAM.map(x=>new legacy.THREE.Vector3(...x[slot])),false,'catmullrom',.42);
   nav.segments.forEach((segment,i)=>{

@@ -48,7 +48,11 @@ export function navigation(CAM,anchors){
    {id:`${keys[i+1]}-${slot}`,role:'stop',stopId:keys[i+1],position:point(b),sourceRef:`index.html#CAM[${i+1}].${slot}`}
   ]};
  };
- return {id:'kage-night-walk',name:'Kyoto temple · six chapter walk',sourceRef:'index.html#CAM',stops,segments:stops.slice(0,-1).map((s,i)=>({id:`${keys[i]}--${keys[i+1]}`,fromStopId:s.id,toStopId:keys[i+1],weight:Math.max(1,anchors[i+1]-anchors[i]),lensStart:0,camera:curve(i,'p'),aim:{kind:'curve',curve:curve(i,'t')},sourceRef:'index.html#buildRig'}))};
+ // Preserve scroll proportions, but scale the editor's 1.25 s per weight unit
+ // preview to 20 seconds. Scroll pixels are distances, not seconds.
+ const spans=stops.slice(0,-1).map((_,i)=>Math.max(1,anchors[i+1]-anchors[i]));
+ const total=spans.reduce((sum,span)=>sum+span,0);
+ return {id:'kage-night-walk',name:'Kyoto temple · six chapter walk',sourceRef:'index.html#CAM',stops,segments:stops.slice(0,-1).map((s,i)=>({id:`${keys[i]}--${keys[i+1]}`,fromStopId:s.id,toStopId:keys[i+1],weight:16*spans[i]/total,lensStart:0,camera:curve(i,'p'),aim:{kind:'curve',curve:curve(i,'t')},sourceRef:'index.html#buildRig'}))};
 }
 function install(runtime){
  const started=performance.now();
